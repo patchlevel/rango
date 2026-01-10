@@ -4,85 +4,127 @@
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/patchlevel/rango/unit.yml?branch=main&label=tests&style=flat-square)](https://github.com/patchlevel/rango/actions)
 [![License](https://img.shields.io/packagist/l/patchlevel/rango.svg?style=flat-square)](https://packagist.org/packages/patchlevel/rango)
 
-Rango is a PHP library that reimplements the **MongoDB PHP API** on top of **PostgreSQL** using JSONB.
+Rango is a high-performance PHP library that reimplements the **MongoDB PHP API** on top of **PostgreSQL** using the power of `JSONB`.
 
-It aims to provide a drop-in–compatible API, allowing applications to interact with PostgreSQL using familiar MongoDB-style operations. By mirroring the MongoDB PHP interface, Rango makes it possible to switch between PostgreSQL and a real MongoDB backend with minimal or no code changes.
+It provides a drop-in compatible API, allowing you to use familiar MongoDB-style operations while storing your data in a reliable PostgreSQL database. This is ideal for applications that want to leverage PostgreSQL's ACID compliance and ecosystem without giving up the flexible document-based development experience of MongoDB.
 
-## Why Rango?
+## 🚀 Why Rango?
 
-- **JSONB Power**: Leverage PostgreSQL's robust JSONB support with a MongoDB-like interface.
-- **Easy Migration**: Use MongoDB-style queries while staying within your existing PostgreSQL infrastructure.
-- **Compatibility**: Designed to be a drop-in replacement for `mongodb/mongodb` in many scenarios.
+- **PostgreSQL Reliability**: Benefit from PostgreSQL's mature engine, backups, and ACID transactions.
+- **JSONB Performance**: Rango leverages PostgreSQL's binary JSON format (`JSONB`) for efficient storage and indexing.
+- **Seamless Migration**: Switch between PostgreSQL and MongoDB with minimal code changes.
+- **Hybrid Power**: Mix relational and document data within the same database.
 
-## Installation
+## 📦 Installation
 
 ```bash
 composer require patchlevel/rango
 ```
 
-## Quick Start
+## 🛠 How it Works
+
+Rango translates MongoDB queries into optimized PostgreSQL SQL statements. 
+
+- **Databases** are mapped to **PostgreSQL Schemas**.
+- **Collections** are mapped to **PostgreSQL Tables** with a single `data` column of type `JSONB`.
+- **Indexes** are created as **GIN or B-tree indexes** on the JSONB field.
+- **Queries** are translated using PostgreSQL's rich set of JSONB operators (like `@>`, `?`, `->>`).
+
+## 🚦 Quick Start
 
 ```php
 use Patchlevel\Rango\Client;
 
-// Connect to PostgreSQL
+// Connect to PostgreSQL using a standard PDO DSN
 $client = new Client('pgsql:host=localhost;port=5432;dbname=app;user=postgres;password=postgres');
 
+// Select database and collection (auto-created on first write)
 $collection = $client->selectDatabase('test')->selectCollection('users');
 
-// Insert a document
+// Insert a document (automatically generates an _id if missing)
 $collection->insertOne([
     'name' => 'John Doe',
     'email' => 'john@example.com',
-    'tags' => ['php', 'postgres']
+    'tags' => ['php', 'postgres'],
+    'metadata' => ['logins' => 0]
 ]);
 
-// Find documents
-$users = $collection->find(['tags' => 'php']);
+// Find documents using MongoDB syntax
+$users = $collection->find([
+    'tags' => 'php',
+    'metadata.logins' => ['$lt' => 10]
+]);
 
 foreach ($users as $user) {
-    echo $user['name'] . "\n";
+    echo "Found: " . $user['name'] . " (" . $user['_id'] . ")\n";
 }
+
+// Atomic updates
+$collection->updateOne(
+    ['email' => 'john@example.com'],
+    ['$inc' => ['metadata.logins' => 1]]
+);
 ```
 
-## Supported Features
+## ✨ Supported Features
 
 ### CRUD Operations
-| Feature | Supported Methods |
+| Category | Supported Methods |
 | --- | --- |
 | **Create** | `insertOne`, `insertMany` |
 | **Read** | `find`, `findOne`, `countDocuments`, `distinct` |
-| **Update** | `updateOne`, `updateMany`, `replaceOne` |
+| **Update** | `updateOne`, `updateMany`, `replaceOne`, `bulkWrite` |
 | **Delete** | `deleteOne`, `deleteMany` |
-| **Find & Modify** | `findOneAndUpdate`, `findOneAndReplace`, `findOneAndDelete` |
+| **Atomic** | `findOneAndUpdate`, `findOneAndReplace`, `findOneAndDelete` |
 
 ### Query Operators
-*   **Comparison**: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`
-*   **Logical**: `$and`, `$or`, `$nor`, `$not`
-*   **Element**: `$exists`
-*   **Evaluation**: `$regex` (with `$options => 'i'`)
-*   **Array**: `$all`, `$size`
+| Category | Operators |
+| --- | --- |
+| **Comparison** | `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin` |
+| **Logical** | `$and`, `$or`, `$nor`, `$not` |
+| **Element** | `$exists`, `$type` |
+| **Evaluation** | `$regex`, `$mod` |
+| **Array** | `$all`, `$size`, `$elemMatch` |
 
 ### Aggregation Framework
-*   **Stages**: `$match`, `$sort`, `$limit`, `$skip`, `$project`, `$unwind`, `$group`
-*   **Accumulators**: `$sum` (within `$group`)
+| Feature | Details |
+| --- | --- |
+| **Stages** | `$match`, `$sort`, `$limit`, `$skip`, `$project`, `$unwind`, `$group`, `$lookup` (Join) |
+| **Accumulators** | `$sum`, `$avg`, `$min`, `$max`, `$first`, `$last` |
+
+### Update Operators
+| Category | Operators |
+| --- | --- |
+| **Field** | `$set`, `$inc`, `$unset`, `$rename`, `$min`, `$max`, `$currentDate` |
+| **Array** | `$push`, `$pull`, `$addToSet`, `$pop` |
+| **Bitwise** | `$bit` (`and`, `or`, `xor`) |
 
 ### Management
-*   **Index Management**: `createIndex`, `dropIndex`, `listIndexes`
-*   **Database & Collection**: `listDatabases`, `listCollections`, `renameCollection`, `drop`
+- **Index Management**: `createIndex`, `dropIndex`, `listIndexes`.
+- **Schema Management**: `listDatabases`, `listCollections`, `renameCollection`, `drop`.
 
-## Development
+## ⚠️ Current Limitations
+
+While Rango covers the most common use cases, some MongoDB features are not yet implemented:
+- **Geospatial queries** (`$near`, `$geoWithin`, etc.)
+- **Capped collections**
+- **Text search** (MongoDB-specific syntax)
+- **Complex Aggregation expressions** (only basic accumulators are supported)
+
+## 👩‍💻 Development
 
 ### Prerequisites
-
 - PHP 8.3+
-- Docker & Docker Compose
+- Docker & Docker Compose (for integration tests)
 
 ### Running Tests
 
-To run the integration tests locally, Postgres and MongoDB must be running. A Docker Compose configuration is provided:
+We test Rango against **both** a real MongoDB and PostgreSQL to ensure 100% compatibility.
 
 ```bash
 docker compose up -d
 vendor/bin/phpunit
 ```
+
+---
+Built with ❤️ by the patchlevel team.

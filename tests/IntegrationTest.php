@@ -401,6 +401,191 @@ abstract class IntegrationTest extends TestCase
         $this->assertCount(2, iterator_to_array($this->collection->find(['tags' => ['$size' => 2]])));
     }
 
+    public function testAddToSet(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'tags' => ['foo']]);
+
+        $this->collection->updateOne(['_id' => '1'], ['$addToSet' => ['tags' => 'bar']]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $tags = (array)$doc['tags'];
+        sort($tags);
+        $this->assertEquals(['bar', 'foo'], $tags);
+
+        $this->collection->updateOne(['_id' => '1'], ['$addToSet' => ['tags' => 'foo']]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $tags = (array)$doc['tags'];
+        sort($tags);
+        $this->assertEquals(['bar', 'foo'], $tags); // Should still be ['bar', 'foo']
+    }
+
+    public function testPop(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'tags' => ['a', 'b', 'c']]);
+
+        $this->collection->updateOne(['_id' => '1'], ['$pop' => ['tags' => 1]]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals(['a', 'b'], (array)$doc['tags']);
+
+        $this->collection->updateOne(['_id' => '1'], ['$pop' => ['tags' => -1]]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals(['b'], (array)$doc['tags']);
+    }
+
+    public function testType(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'v' => 'string'],
+            ['_id' => '2', 'v' => 42],
+            ['_id' => '3', 'v' => []],
+            ['_id' => '4', 'v' => (object)['object' => 'foo']],
+            ['_id' => '5', 'v' => true],
+            ['_id' => '6', 'v' => null],
+        ]);
+
+        $docs = iterator_to_array($this->collection->find(['v' => ['$type' => 'string']]));
+        $this->assertCount(1, $docs, 'Failed for type string: ' . json_encode($docs));
+        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'number']])), 'Failed for type number');
+        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'array']])), 'Failed for type array');
+        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'object']])), 'Failed for type object');
+        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'bool']])), 'Failed for type bool');
+        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'null']])), 'Failed for type null');
+    }
+
+    public function testMod(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'v' => 10],
+            ['_id' => '2', 'v' => 11],
+            ['_id' => '3', 'v' => 12],
+        ]);
+
+        $this->assertCount(2, iterator_to_array($this->collection->find(['v' => ['$mod' => [2, 0]]])));
+        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$mod' => [2, 1]]])));
+    }
+
+    public function testMoreAccumulators(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'category' => 'A', 'amount' => 10],
+            ['_id' => '2', 'category' => 'B', 'amount' => 20],
+            ['_id' => '3', 'category' => 'A', 'amount' => 30],
+        ]);
+
+        $pipeline = [
+            [
+                '$group' => [
+                    '_id' => '$category',
+                    'avg' => ['$avg' => '$amount'],
+                    'min' => ['$min' => '$amount'],
+                    'max' => ['$max' => '$amount'],
+                    'first' => ['$first' => '$amount'],
+                    'last' => ['$last' => '$amount'],
+                ],
+            ],
+            ['$sort' => ['_id' => 1]],
+        ];
+
+        $result = $this->collection->aggregate($pipeline);
+        $docs = array_values(iterator_to_array($result));
+
+        $this->assertCount(2, $docs);
+        $this->assertEquals('A', $docs[0]['_id']);
+        $this->assertEquals(20, $docs[0]['avg']);
+        $this->assertEquals(10, $docs[0]['min']);
+        $this->assertEquals(30, $docs[0]['max']);
+        $this->assertEquals(10, $docs[0]['first']);
+        $this->assertEquals(30, $docs[0]['last']);
+    }
+
+    public function testLookup(): void
+    {
+        $database = $this->getDatabase();
+        $orders = $database->getCollection('orders');
+        $products = $database->getCollection('products');
+
+        $orders->drop();
+        $products->drop();
+
+        $products->insertMany([
+            ['_id' => 'p1', 'name' => 'Laptop'],
+            ['_id' => 'p2', 'name' => 'Mouse'],
+        ]);
+
+        $orders->insertMany([
+            ['_id' => 'o1', 'pid' => 'p1', 'qty' => 1],
+            ['_id' => 'o2', 'pid' => 'p2', 'qty' => 2],
+            ['_id' => 'o3', 'pid' => 'p1', 'qty' => 3],
+        ]);
+
+        $pipeline = [
+            [
+                '$lookup' => [
+                    'from' => 'products',
+                    'localField' => 'pid',
+                    'foreignField' => '_id',
+                    'as' => 'product_details',
+                ],
+            ],
+            ['$sort' => ['_id' => 1]],
+        ];
+
+        $result = $orders->aggregate($pipeline);
+        $docs = array_values(iterator_to_array($result));
+
+        $this->assertCount(3, $docs);
+        $this->assertEquals('o1', $docs[0]['_id']);
+        $this->assertCount(1, $docs[0]['product_details']);
+        $this->assertEquals('Laptop', $docs[0]['product_details'][0]['name']);
+
+        $this->assertEquals('o2', $docs[1]['_id']);
+        $this->assertCount(1, $docs[1]['product_details']);
+        $this->assertEquals('Mouse', $docs[1]['product_details'][0]['name']);
+    }
+
+    public function testCurrentDate(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
+        $this->collection->updateOne(['_id' => '1'], ['$currentDate' => ['lastModified' => true]]);
+
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertArrayHasKey('lastModified', $doc);
+        $this->assertNotEmpty($doc['lastModified']);
+    }
+
+    public function testBitOperator(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'v' => 10]); // 1010 in binary
+
+        // AND: 1010 & 1100 (12) = 1000 (8)
+        $this->collection->updateOne(['_id' => '1'], ['$bit' => ['v' => ['and' => 12]]]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals(8, $doc['v']);
+
+        // OR: 1000 | 0101 (5) = 1101 (13)
+        $this->collection->updateOne(['_id' => '1'], ['$bit' => ['v' => ['or' => 5]]]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals(13, $doc['v']);
+
+        // XOR: 1101 ^ 0111 (7) = 1010 (10)
+        $this->collection->updateOne(['_id' => '1'], ['$bit' => ['v' => ['xor' => 7]]]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals(10, $doc['v']);
+    }
+
+    public function testBulkWrite(): void
+    {
+        $this->collection->bulkWrite([
+            ['insertOne' => [['_id' => '1', 'v' => 1]]],
+            ['insertOne' => [['_id' => '2', 'v' => 2]]],
+            ['updateOne' => [['_id' => '1'], ['$set' => ['v' => 10]]]],
+            ['deleteOne' => [['_id' => '2']]],
+        ]);
+
+        $this->assertEquals(1, $this->collection->countDocuments());
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals(10, $doc['v']);
+    }
+
     public function testUpdateMany(): void
     {
         $this->collection->insertMany([
@@ -541,6 +726,42 @@ abstract class IntegrationTest extends TestCase
 
         // Cleanup
         $database->renameCollection('items_new', 'items');
+    }
+
+    public function testElemMatch(): void
+    {
+        $this->collection->insertMany([
+            [
+                '_id' => '1',
+                'results' => [
+                    ['product' => 'abc', 'score' => 10],
+                    ['product' => 'xyz', 'score' => 5],
+                ],
+            ],
+            [
+                '_id' => '2',
+                'results' => [
+                    ['product' => 'abc', 'score' => 8],
+                    ['product' => 'xyz', 'score' => 7],
+                ],
+            ],
+        ]);
+
+        $docs = iterator_to_array($this->collection->find([
+            'results' => [
+                '$elemMatch' => ['product' => 'abc', 'score' => ['$gte' => 10]],
+            ],
+        ]));
+
+        $this->assertCount(1, $docs);
+        $this->assertEquals('1', $docs[0]['_id']);
+
+        $docs = iterator_to_array($this->collection->find([
+            'results' => [
+                '$elemMatch' => ['product' => 'abc', 'score' => ['$gt' => 5]],
+            ],
+        ]));
+        $this->assertCount(2, $docs);
     }
 
     public function testListDatabases(): void

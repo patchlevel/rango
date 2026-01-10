@@ -247,6 +247,47 @@ final class Client
             return new Result([$data]);
         }
 
+        if ($command === 'bulkWrite') {
+            $this->execute($database, $collection, 'create', []);
+            $this->pdo->beginTransaction();
+
+            try {
+                foreach ($arguments['operations'] as $operation) {
+                    foreach ($operation as $type => $args) {
+                        if ($type === 'insertOne') {
+                            $document = $args[0];
+                            if (!isset($document['_id'])) {
+                                $document['_id'] = bin2hex(random_bytes(12));
+                            }
+                            $sql = $this->queryBuilder->createInsert($database, $collection, $document);
+                            $this->pdo->exec($sql);
+                        } elseif ($type === 'updateOne') {
+                            $sql = $this->queryBuilder->createUpdate($database, $collection, $args[0], $args[1], $args[2] ?? [], false);
+                            $this->pdo->exec($sql);
+                        } elseif ($type === 'updateMany') {
+                            $sql = $this->queryBuilder->createUpdate($database, $collection, $args[0], $args[1], $args[2] ?? [], true);
+                            $this->pdo->exec($sql);
+                        } elseif ($type === 'replaceOne') {
+                            $sql = $this->queryBuilder->createReplace($database, $collection, $args[0], $args[1], $args[2] ?? []);
+                            $this->pdo->exec($sql);
+                        } elseif ($type === 'deleteOne') {
+                            $sql = $this->queryBuilder->createDelete($database, $collection, $args[0], false);
+                            $this->pdo->exec($sql);
+                        } elseif ($type === 'deleteMany') {
+                            $sql = $this->queryBuilder->createDelete($database, $collection, $args[0], true);
+                            $this->pdo->exec($sql);
+                        }
+                    }
+                }
+                $this->pdo->commit();
+            } catch (\Throwable $e) {
+                $this->pdo->rollBack();
+                throw $e;
+            }
+
+            return null;
+        }
+
         if ($command === 'createIndex') {
             $this->execute($database, $collection, 'create', []);
             $sql = $this->queryBuilder->createCreateIndex($database, $collection, $arguments['key'], $arguments['options']);

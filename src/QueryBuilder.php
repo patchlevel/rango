@@ -129,6 +129,10 @@ final class QueryBuilder
         $unsetData = $update['$unset'] ?? null;
         $pushData = $update['$push'] ?? null;
         $pullData = $update['$pull'] ?? null;
+        $addToSetData = $update['$addToSet'] ?? null;
+        $popData = $update['$pop'] ?? null;
+        $bitData = $update['$bit'] ?? null;
+        $currentDateData = $update['$currentDate'] ?? null;
         $renameData = $update['$rename'] ?? null;
         $minData = $update['$min'] ?? null;
         $maxData = $update['$max'] ?? null;
@@ -209,6 +213,67 @@ final class QueryBuilder
                     $this->pdo->quote('{' . $field . '}'),
                     $this->pdo->quote($field),
                     $this->pdo->quote(json_encode($value)),
+                );
+            }
+        }
+
+        if ($addToSetData) {
+            foreach ($addToSetData as $field => $value) {
+                $updateParts[] = sprintf(
+                    'jsonb_set(data, %1$s, COALESCE(data->%2$s, \'[]\'::jsonb) || (CASE WHEN (data->%2$s) @> %3$s THEN \'[]\'::jsonb ELSE %3$s::jsonb END))',
+                    $this->pdo->quote('{' . $field . '}'),
+                    $this->pdo->quote($field),
+                    $this->pdo->quote(json_encode([$value])),
+                );
+            }
+        }
+
+        if ($popData) {
+            foreach ($popData as $field => $value) {
+                if ($value === 1) {
+                    // Remove last element
+                    $updateParts[] = sprintf(
+                        'jsonb_set(data, %1$s, (data->%2$s) - (jsonb_array_length(data->%2$s) - 1))',
+                        $this->pdo->quote('{' . $field . '}'),
+                        $this->pdo->quote($field),
+                    );
+                } elseif ($value === -1) {
+                    // Remove first element
+                    $updateParts[] = sprintf(
+                        'jsonb_set(data, %1$s, (data->%2$s) - 0)',
+                        $this->pdo->quote('{' . $field . '}'),
+                        $this->pdo->quote($field),
+                    );
+                }
+            }
+        }
+
+        if ($bitData) {
+            foreach ($bitData as $field => $operations) {
+                foreach ($operations as $op => $value) {
+                    $sqlOp = match ($op) {
+                        'and' => '&',
+                        'or' => '|',
+                        'xor' => '#',
+                        default => throw new RuntimeException(sprintf('Bitwise operator "%s" is not supported', $op)),
+                    };
+
+                    $updateParts[] = sprintf(
+                        'jsonb_set(data, %s, (COALESCE(data->>%s, \'0\')::bigint %s %d)::text::jsonb)',
+                        $this->pdo->quote('{' . $field . '}'),
+                        $this->pdo->quote($field),
+                        $sqlOp,
+                        (int)$value,
+                    );
+                }
+            }
+        }
+
+        if ($currentDateData) {
+            foreach ($currentDateData as $field => $value) {
+                $updateParts[] = sprintf(
+                    'jsonb_set(data, %s, to_jsonb(CURRENT_TIMESTAMP))',
+                    $this->pdo->quote('{' . $field . '}'),
                 );
             }
         }
@@ -412,16 +477,29 @@ final class QueryBuilder
                             continue;
                         }
 
-                        foreach ($expr as $sumOp => $sumVal) {
-                            if ($sumOp !== '$sum') {
-                                continue;
-                            }
-
-                            $fields[] = $this->pdo->quote($alias);
-                            if (is_numeric($sumVal)) {
-                                $fields[] = sprintf('SUM(%s)::text::jsonb', (float)$sumVal);
-                            } else {
-                                $fields[] = sprintf('SUM((data->>%s)::numeric)::text::jsonb', $this->pdo->quote(ltrim($sumVal, '$')));
+                        foreach ($expr as $accOp => $accVal) {
+                            if ($accOp === '$sum') {
+                                $fields[] = $this->pdo->quote($alias);
+                                if (is_numeric($accVal)) {
+                                    $fields[] = sprintf('SUM(%s)::text::jsonb', (float)$accVal);
+                                } else {
+                                    $fields[] = sprintf('SUM((data->>%s)::numeric)::text::jsonb', $this->pdo->quote(ltrim($accVal, '$')));
+                                }
+                            } elseif ($accOp === '$avg') {
+                                $fields[] = $this->pdo->quote($alias);
+                                $fields[] = sprintf('AVG((data->>%s)::numeric)::text::jsonb', $this->pdo->quote(ltrim($accVal, '$')));
+                            } elseif ($accOp === '$min') {
+                                $fields[] = $this->pdo->quote($alias);
+                                $fields[] = sprintf('MIN((data->>%s)::numeric)::text::jsonb', $this->pdo->quote(ltrim($accVal, '$')));
+                            } elseif ($accOp === '$max') {
+                                $fields[] = $this->pdo->quote($alias);
+                                $fields[] = sprintf('MAX((data->>%s)::numeric)::text::jsonb', $this->pdo->quote(ltrim($accVal, '$')));
+                            } elseif ($accOp === '$first') {
+                                $fields[] = $this->pdo->quote($alias);
+                                $fields[] = sprintf('(ARRAY_AGG(data->%s))[1]', $this->pdo->quote(ltrim($accVal, '$')));
+                            } elseif ($accOp === '$last') {
+                                $fields[] = $this->pdo->quote($alias);
+                                $fields[] = sprintf('(ARRAY_AGG(data->%s))[ARRAY_LENGTH(ARRAY_AGG(data->%s), 1)]', $this->pdo->quote(ltrim($accVal, '$')), $this->pdo->quote(ltrim($accVal, '$')));
                             }
                         }
                     }
@@ -432,6 +510,28 @@ final class QueryBuilder
                         $currentQuery,
                         $groupBy,
                     );
+                } elseif ($operator === '$lookup') {
+                    $from = $value['from'];
+                    $localField = $value['localField'];
+                    $foreignField = $value['foreignField'];
+                    $as = $value['as'];
+
+                    $foreignTable = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($from);
+
+                    $currentQuery = sprintf(
+                        'SELECT t.data || jsonb_build_object(%s, COALESCE(l.matches, \'[]\'::jsonb)) AS data
+                         FROM (%s) AS t
+                         LEFT JOIN LATERAL (
+                             SELECT jsonb_agg(data) AS matches
+                             FROM %s
+                             WHERE data->%s = t.data->%s
+                         ) l ON true',
+                        $this->pdo->quote($as),
+                        $currentQuery,
+                        $foreignTable,
+                        $this->pdo->quote($foreignField),
+                        $this->pdo->quote($localField),
+                    );
                 }
             }
         }
@@ -439,36 +539,36 @@ final class QueryBuilder
         return $currentQuery;
     }
 
-    private function buildWhere(array $filter): string
+    private function buildWhere(array $filter, string $conjunction = 'AND', string $column = 'data'): string
     {
         if (empty($filter)) {
             return '';
         }
 
-        return $this->buildFilter($filter);
+        return $this->buildFilter($filter, $conjunction, $column);
     }
 
-    private function buildFilter(array $filter, string $conjunction = 'AND'): string
+    private function buildFilter(array $filter, string $conjunction = 'AND', string $column = 'data'): string
     {
         $parts = [];
         foreach ($filter as $key => $value) {
             if ($key === '$and') {
-                $parts[] = '(' . $this->buildLogicalOperator($value, 'AND') . ')';
+                $parts[] = '(' . $this->buildLogicalOperator($value, 'AND', $column) . ')';
                 continue;
             }
 
             if ($key === '$or') {
-                $parts[] = '(' . $this->buildLogicalOperator($value, 'OR') . ')';
+                $parts[] = '(' . $this->buildLogicalOperator($value, 'OR', $column) . ')';
                 continue;
             }
 
             if ($key === '$nor') {
-                $parts[] = 'NOT (' . $this->buildLogicalOperator($value, 'OR') . ')';
+                $parts[] = 'NOT (' . $this->buildLogicalOperator($value, 'OR', $column) . ')';
                 continue;
             }
 
             if ($key === '$not') {
-                $parts[] = 'NOT (' . $this->buildFilter($value) . ')';
+                $parts[] = 'NOT (' . $this->buildFilter($value, 'AND', $column) . ')';
                 continue;
             }
 
@@ -476,23 +576,23 @@ final class QueryBuilder
                 throw new RuntimeException(sprintf('Operator "%s" is not supported at the top level', $key));
             }
 
-            $parts[] = $this->buildFieldFilter($key, $value);
+            $parts[] = $this->buildFieldFilter($key, $value, $column);
         }
 
         return implode(sprintf(' %s ', $conjunction), $parts);
     }
 
-    private function buildLogicalOperator(array $queries, string $conjunction): string
+    private function buildLogicalOperator(array $queries, string $conjunction, string $column = 'data'): string
     {
         $parts = [];
         foreach ($queries as $query) {
-            $parts[] = $this->buildFilter($query);
+            $parts[] = $this->buildFilter($query, 'AND', $column);
         }
 
         return implode(sprintf(' %s ', $conjunction), $parts);
     }
 
-    private function buildFieldFilter(string $field, mixed $value): string
+    private function buildFieldFilter(string $field, mixed $value, string $column = 'data'): string
     {
         if (is_array($value) && $this->isOperatorArray($value)) {
             $parts = [];
@@ -501,17 +601,17 @@ final class QueryBuilder
                     continue;
                 }
 
-                $parts[] = $this->buildOperatorFilter($field, $operator, $operand, $value);
+                $parts[] = $this->buildOperatorFilter($field, $operator, $operand, $value, $column);
             }
 
             return implode(' AND ', $parts);
         }
 
         if ($field === '_id') {
-            return sprintf("data->>'_id' = %s", $this->pdo->quote((string)$value));
+            return sprintf("%s->>'_id' = %s", $column, $this->pdo->quote((string)$value));
         }
 
-        return sprintf('data @> %s', $this->pdo->quote(json_encode([$field => $value])));
+        return sprintf('%s @> %s', $column, $this->pdo->quote(json_encode([$field => $value])));
     }
 
     private function isOperatorArray(array $array): bool
@@ -525,12 +625,12 @@ final class QueryBuilder
         return false;
     }
 
-    private function buildOperatorFilter(string $field, string $operator, mixed $operand, array $allOperators = []): string
+    private function buildOperatorFilter(string $field, string $operator, mixed $operand, array $allOperators = [], string $column = 'data'): string
     {
-        $fieldExpression = $field === '_id' ? "data->>'_id'" : sprintf('data->%s', $this->pdo->quote($field));
+        $fieldExpression = $field === '_id' ? sprintf("%s->>'_id'", $column) : sprintf('%s->%s', $column, $this->pdo->quote($field));
 
         if ($operator === '$not') {
-            return sprintf('NOT (%s)', $this->buildFieldFilter($field, $operand));
+            return sprintf('NOT (%s)', $this->buildFieldFilter($field, $operand, $column));
         }
 
         if ($operator === '$eq') {
@@ -538,7 +638,7 @@ final class QueryBuilder
                 return sprintf('%s = %s', $fieldExpression, $this->pdo->quote((string)$operand));
             }
 
-            return sprintf('data @> %s', $this->pdo->quote(json_encode([$field => $operand])));
+            return sprintf('%s @> %s', $column, $this->pdo->quote(json_encode([$field => $operand])));
         }
 
         if ($operator === '$ne') {
@@ -546,7 +646,7 @@ final class QueryBuilder
                 return sprintf('%s != %s', $fieldExpression, $this->pdo->quote((string)$operand));
             }
 
-            return sprintf('NOT (data @> %s)', $this->pdo->quote(json_encode([$field => $operand])));
+            return sprintf('NOT (%s @> %s)', $column, $this->pdo->quote(json_encode([$field => $operand])));
         }
 
         if ($operator === '$gt') {
@@ -601,17 +701,17 @@ final class QueryBuilder
 
         if ($operator === '$exists') {
             if ($operand) {
-                return sprintf('data ?? %s', $this->pdo->quote($field));
+                return sprintf('%s ?? %s', $column, $this->pdo->quote($field));
             }
 
-            return sprintf('NOT (data ?? %s)', $this->pdo->quote($field));
+            return sprintf('NOT (%s ?? %s)', $column, $this->pdo->quote($field));
         }
 
         if ($operator === '$regex') {
             // MongoDB $regex on field "name" where "name" is "Apple" matches "^App"
             // In PG, data->'name' is a jsonb string '"Apple"'.
             // We need the raw string value for regex.
-            $rawFieldExpression = $field === '_id' ? "data->>'_id'" : sprintf('data->>%s', $this->pdo->quote($field));
+            $rawFieldExpression = $field === '_id' ? sprintf("%s->>'_id'", $column) : sprintf('%s->>%s', $column, $this->pdo->quote($field));
 
             $caseInsensitive = false;
             if (isset($allOperators['$options']) && str_contains($allOperators['$options'], 'i')) {
@@ -633,6 +733,48 @@ final class QueryBuilder
 
         if ($operator === '$size') {
             return sprintf('jsonb_array_length(%s) = %d', $fieldExpression, (int)$operand);
+        }
+
+        if ($operator === '$type') {
+            $typeMap = [
+                'double' => 'number',
+                'string' => 'string',
+                'object' => 'object',
+                'array' => 'array',
+                'bool' => 'boolean',
+                'boolean' => 'boolean',
+                'number' => 'number',
+                'int' => 'number',
+                'long' => 'number',
+                'decimal' => 'number',
+                'null' => 'null',
+            ];
+
+            $pgType = $typeMap[$operand] ?? $operand;
+
+            return sprintf('jsonb_typeof(%s) = %s', $fieldExpression, $this->pdo->quote((string)$pgType));
+        }
+
+        if ($operator === '$mod') {
+            if (!is_array($operand) || count($operand) !== 2) {
+                throw new RuntimeException('$mod requires an array with 2 elements');
+            }
+
+            return sprintf('MOD((%s)::numeric, %d) = %d', $fieldExpression, (int)$operand[0], (int)$operand[1]);
+        }
+
+        if ($operator === '$elemMatch') {
+            if (!is_array($operand)) {
+                throw new RuntimeException('$elemMatch requires an array/object');
+            }
+
+            $subWhere = $this->buildWhere($operand, 'AND', 'x');
+
+            return sprintf(
+                'EXISTS (SELECT 1 FROM jsonb_array_elements(%s) x WHERE %s)',
+                $fieldExpression,
+                $subWhere,
+            );
         }
 
         throw new RuntimeException(sprintf('Operator "%s" is not supported', $operator));

@@ -244,6 +244,18 @@ class Collection
     }
 
     /**
+     * @param list<array<string, array<string, mixed>>> $operations
+     * @param array<string, mixed>                      $options
+     */
+    public function bulkWrite(array $operations, array $options = []): void
+    {
+        $this->client->execute($this->databaseName, $this->collectionName, 'bulkWrite', [
+            'operations' => $operations,
+            'options' => $options,
+        ]);
+    }
+
+    /**
      * @param array<string, int>   $key
      * @param array<string, mixed> $options
      */
