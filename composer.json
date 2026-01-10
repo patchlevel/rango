@@ -1,0 +1,58 @@
+{
+  "name": "patchlevel/rango",
+  "type": "library",
+  "license": "MIT",
+  "description": "Rango",
+  "keywords": [
+    "mongodb",
+    "postgres"
+  ],
+  "homepage": "https://github.com/patchlevel/hydrator",
+  "authors": [
+    {
+      "name": "Daniel Badura",
+      "email": "daniel.badura@patchlevel.de"
+    },
+    {
+      "name": "David Badura",
+      "email": "david.badura@patchlevel.de"
+    }
+  ],
+  "require": {
+    "php": "~8.3.0 || ~8.4.0 || ~8.5.0" ,
+    "ext-pdo": "*"
+  },
+  "require-dev": {
+    "ext-mongodb": "^2.1",
+    "infection/infection": "^0.31.9",
+    "mongodb/mongodb": "^2.1",
+    "patchlevel/coding-standard": "^1.3.0",
+    "phpat/phpat": "^0.12.0",
+    "phpbench/phpbench": "^1.2.15",
+    "phpstan/phpstan": "^2.1.32",
+    "phpstan/phpstan-phpunit": "^2.0.8",
+    "phpunit/phpunit": "^11.5.17",
+    "symfony/var-dumper": "^6.4.0 || ^7.0.0 || ^8.0.0"
+  },
+  "config": {
+    "preferred-install": {
+      "*": "dist"
+    },
+    "sort-packages": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "infection/extension-installer": true,
+      "composer/package-versions-deprecated": true
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Patchlevel\\Rango\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Patchlevel\\Rango\\Tests\\": "tests/"
+    }
+  }
+}

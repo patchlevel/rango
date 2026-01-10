@@ -1,0 +1,9 @@
+vendor/
+coverage/
+phpunit.xml
+.phpunit.cache
+.phpcs-cache
+phpstan.neon
+infection.log
+infection.html
+.phpbench/
