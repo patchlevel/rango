@@ -43,273 +43,41 @@ final class Client
 
     public function listDatabases(): array
     {
-        $sql = $this->queryBuilder->createListDatabases();
-        $statement = $this->pdo->query($sql);
-
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
+        return $this->run(new Operation\ListDatabases());
     }
 
     public function listCollections(string $database): array
     {
-        $sql = $this->queryBuilder->createListCollections($database);
-        $statement = $this->pdo->query($sql);
-
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
+        return $this->run(new Operation\ListCollections($database));
     }
 
     public function renameCollection(string $database, string $oldName, string $newName): void
     {
-        $sql = $this->queryBuilder->createRenameCollection($database, $oldName, $newName);
-        $this->pdo->exec($sql);
+        $this->run(new Operation\RenameCollection($database, $oldName, $newName));
     }
 
-    /** @param array<string, mixed> $arguments */
-    public function execute(string $database, string $collection, string $command, array $arguments): mixed
+    public function run(Operation\Operation $operation): mixed
     {
-        if ($command === 'drop') {
-            return $this->pdo->exec(sprintf('DROP TABLE IF EXISTS %s.%s', $database, $collection));
+        if (
+            $operation instanceof Operation\InsertOne ||
+            $operation instanceof Operation\InsertMany ||
+            $operation instanceof Operation\Find ||
+            $operation instanceof Operation\FindOne ||
+            $operation instanceof Operation\Update ||
+            $operation instanceof Operation\ReplaceOne ||
+            $operation instanceof Operation\Delete ||
+            $operation instanceof Operation\Count ||
+            $operation instanceof Operation\Aggregate ||
+            $operation instanceof Operation\Distinct ||
+            $operation instanceof Operation\FindOneAndDelete ||
+            $operation instanceof Operation\FindOneAndReplace ||
+            $operation instanceof Operation\FindOneAndUpdate ||
+            $operation instanceof Operation\BulkWrite ||
+            $operation instanceof Operation\CreateIndex
+        ) {
+            $this->run(new Operation\CreateCollection($operation->database, $operation->collection));
         }
 
-        if ($command === 'create') {
-            $this->pdo->exec(sprintf('CREATE TABLE IF NOT EXISTS %s.%s (data JSONB NOT NULL)', $database, $collection));
-            $this->pdo->exec(sprintf(
-                'CREATE UNIQUE INDEX IF NOT EXISTS %s_%s_id_idx ON %s.%s ((data->>\'_id\'))',
-                $database,
-                $collection,
-                $database,
-                $collection,
-            ));
-
-            return true;
-        }
-
-        if ($command === 'insertOne') {
-            $this->execute($database, $collection, 'create', []);
-            $document = $arguments['document'];
-            if (!isset($document['_id'])) {
-                $document['_id'] = bin2hex(random_bytes(12));
-            }
-
-            $sql = $this->queryBuilder->createInsert($database, $collection, $document);
-            $this->pdo->exec($sql);
-
-            return new Result([json_encode($document)]);
-        }
-
-        if ($command === 'insertMany') {
-            $this->execute($database, $collection, 'create', []);
-            $documents = [];
-            foreach ($arguments['documents'] as $document) {
-                if (!isset($document['_id'])) {
-                    $document['_id'] = bin2hex(random_bytes(12));
-                }
-
-                $sql = $this->queryBuilder->createInsert($database, $collection, $document);
-                $this->pdo->exec($sql);
-                $documents[] = json_encode($document);
-            }
-
-            return new Result($documents);
-        }
-
-        if ($command === 'find') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createSelect($database, $collection, $arguments['filter'], $arguments['options']);
-            $statement = $this->pdo->query($sql);
-
-            return new Result($statement->fetchAll(PDO::FETCH_COLUMN));
-        }
-
-        if ($command === 'findOne') {
-            $this->execute($database, $collection, 'create', []);
-            $arguments['options']['limit'] = 1;
-            $sql = $this->queryBuilder->createSelect($database, $collection, $arguments['filter'], $arguments['options']);
-            $statement = $this->pdo->query($sql);
-            $data = $statement->fetchColumn();
-
-            return new Result($data ? [$data] : []);
-        }
-
-        if ($command === 'updateOne') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createUpdate($database, $collection, $arguments['filter'], $arguments['update'], $arguments['options'], false);
-            $this->pdo->exec($sql);
-
-            return new Result();
-        }
-
-        if ($command === 'updateMany') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createUpdate($database, $collection, $arguments['filter'], $arguments['update'], $arguments['options'], true);
-            $this->pdo->exec($sql);
-
-            return new Result();
-        }
-
-        if ($command === 'replaceOne') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createReplace($database, $collection, $arguments['filter'], $arguments['replacement'], $arguments['options']);
-            $this->pdo->exec($sql);
-
-            return new Result();
-        }
-
-        if ($command === 'deleteOne') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createDelete($database, $collection, $arguments['filter'], false);
-            $this->pdo->exec($sql);
-
-            return new Result();
-        }
-
-        if ($command === 'deleteMany') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createDelete($database, $collection, $arguments['filter'], true);
-            $this->pdo->exec($sql);
-
-            return new Result();
-        }
-
-        if ($command === 'count') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createCount($database, $collection, $arguments['filter']);
-            $statement = $this->pdo->query($sql);
-
-            return (int)$statement->fetchColumn();
-        }
-
-        if ($command === 'aggregate') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createAggregate($database, $collection, $arguments['pipeline'], $arguments['options']);
-            $statement = $this->pdo->query($sql);
-
-            return new Result($statement->fetchAll(PDO::FETCH_COLUMN));
-        }
-
-        if ($command === 'distinct') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createDistinct($database, $collection, $arguments['fieldName'], $arguments['filter']);
-            $statement = $this->pdo->query($sql);
-
-            return array_map(
-                static fn (string $item) => json_decode($item, true),
-                $statement->fetchAll(PDO::FETCH_COLUMN),
-            );
-        }
-
-        if ($command === 'findOneAndDelete') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createSelect($database, $collection, $arguments['filter'], ['limit' => 1]);
-            $statement = $this->pdo->query($sql);
-            $data = $statement->fetchColumn();
-
-            if (!$data) {
-                return null;
-            }
-
-            $sql = $this->queryBuilder->createDelete($database, $collection, $arguments['filter'], false);
-            // We need to be careful here to only delete the one we found if there are multiple matches
-            // but for now we follow the same filter.
-            $this->pdo->exec($sql);
-
-            return new Result([$data]);
-        }
-
-        if ($command === 'findOneAndReplace') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createSelect($database, $collection, $arguments['filter'], ['limit' => 1]);
-            $statement = $this->pdo->query($sql);
-            $data = $statement->fetchColumn();
-
-            if (!$data) {
-                return null;
-            }
-
-            $sql = $this->queryBuilder->createReplace($database, $collection, $arguments['filter'], $arguments['replacement'], $arguments['options']);
-            $this->pdo->exec($sql);
-
-            return new Result([$data]);
-        }
-
-        if ($command === 'findOneAndUpdate') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createSelect($database, $collection, $arguments['filter'], ['limit' => 1]);
-            $statement = $this->pdo->query($sql);
-            $data = $statement->fetchColumn();
-
-            if (!$data) {
-                return null;
-            }
-
-            $sql = $this->queryBuilder->createUpdate($database, $collection, $arguments['filter'], $arguments['update'], $arguments['options'], false);
-            $this->pdo->exec($sql);
-
-            return new Result([$data]);
-        }
-
-        if ($command === 'bulkWrite') {
-            $this->execute($database, $collection, 'create', []);
-            $this->pdo->beginTransaction();
-
-            try {
-                foreach ($arguments['operations'] as $operation) {
-                    foreach ($operation as $type => $args) {
-                        if ($type === 'insertOne') {
-                            $document = $args[0];
-                            if (!isset($document['_id'])) {
-                                $document['_id'] = bin2hex(random_bytes(12));
-                            }
-                            $sql = $this->queryBuilder->createInsert($database, $collection, $document);
-                            $this->pdo->exec($sql);
-                        } elseif ($type === 'updateOne') {
-                            $sql = $this->queryBuilder->createUpdate($database, $collection, $args[0], $args[1], $args[2] ?? [], false);
-                            $this->pdo->exec($sql);
-                        } elseif ($type === 'updateMany') {
-                            $sql = $this->queryBuilder->createUpdate($database, $collection, $args[0], $args[1], $args[2] ?? [], true);
-                            $this->pdo->exec($sql);
-                        } elseif ($type === 'replaceOne') {
-                            $sql = $this->queryBuilder->createReplace($database, $collection, $args[0], $args[1], $args[2] ?? []);
-                            $this->pdo->exec($sql);
-                        } elseif ($type === 'deleteOne') {
-                            $sql = $this->queryBuilder->createDelete($database, $collection, $args[0], false);
-                            $this->pdo->exec($sql);
-                        } elseif ($type === 'deleteMany') {
-                            $sql = $this->queryBuilder->createDelete($database, $collection, $args[0], true);
-                            $this->pdo->exec($sql);
-                        }
-                    }
-                }
-                $this->pdo->commit();
-            } catch (\Throwable $e) {
-                $this->pdo->rollBack();
-                throw $e;
-            }
-
-            return null;
-        }
-
-        if ($command === 'createIndex') {
-            $this->execute($database, $collection, 'create', []);
-            $sql = $this->queryBuilder->createCreateIndex($database, $collection, $arguments['key'], $arguments['options']);
-            $this->pdo->exec($sql);
-
-            return true;
-        }
-
-        if ($command === 'dropIndex') {
-            $sql = $this->queryBuilder->createDropIndex($database, $arguments['name']);
-            $this->pdo->exec($sql);
-
-            return true;
-        }
-
-        if ($command === 'listIndexes') {
-            $sql = $this->queryBuilder->createListIndexes($database, $collection);
-            $statement = $this->pdo->query($sql);
-
-            return $statement->fetchAll(PDO::FETCH_ASSOC);
-        }
-
-        return null;
+        return $operation->execute($this->pdo, $this->queryBuilder);
     }
 }

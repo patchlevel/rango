@@ -774,6 +774,189 @@ abstract class IntegrationTest extends TestCase
         $this->assertContains('test', $names);
     }
 
+    public function testPushWithEach(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'tags' => ['foo']]);
+
+        $this->collection->updateOne(['_id' => '1'], ['$push' => ['tags' => ['$each' => ['bar', 'baz']]]]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals(['foo', 'bar', 'baz'], (array)$doc['tags']);
+    }
+
+    public function testNestedFilter(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'metadata' => ['logins' => 5, 'active' => true]],
+            ['_id' => '2', 'metadata' => ['logins' => 15, 'active' => true]],
+            ['_id' => '3', 'metadata' => ['logins' => 5, 'active' => false]],
+        ]);
+
+        $this->assertCount(1, iterator_to_array($this->collection->find(['metadata.logins' => 5, 'metadata.active' => false])));
+        $this->assertCount(1, iterator_to_array($this->collection->find(['metadata.logins' => ['$gt' => 10]])));
+    }
+
+    public function testComplexAggregate(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'status' => 'A', 'amount' => 10, 'tags' => ['foo']],
+            ['_id' => '2', 'status' => 'A', 'amount' => 20, 'tags' => ['bar']],
+            ['_id' => '3', 'status' => 'B', 'amount' => 30, 'tags' => ['foo', 'bar']],
+            ['_id' => '4', 'status' => 'A', 'amount' => 40, 'tags' => ['baz']],
+        ]);
+
+        $pipeline = [
+            ['$match' => ['status' => 'A']],
+            ['$unwind' => '$tags'],
+            ['$group' => [
+                '_id' => '$tags',
+                'total' => ['$sum' => '$amount'],
+            ]],
+            ['$sort' => ['total' => -1]],
+        ];
+
+        $result = $this->collection->aggregate($pipeline);
+        $docs = array_values(iterator_to_array($result));
+
+        $this->assertCount(3, $docs);
+        $this->assertEquals('baz', $docs[0]['_id']);
+        $this->assertEquals(40, $docs[0]['total']);
+        $this->assertEquals('bar', $docs[1]['_id']);
+        $this->assertEquals(20, $docs[1]['total']);
+        $this->assertEquals('foo', $docs[2]['_id']);
+        $this->assertEquals(10, $docs[2]['total']);
+    }
+
+    public function testCombinedUpdate(): void
+    {
+        $this->collection->insertOne([
+            '_id' => '1',
+            'name' => 'foo',
+            'score' => 10,
+            'tags' => ['a'],
+        ]);
+
+        $this->collection->updateOne(
+            ['_id' => '1'],
+            [
+                '$set' => ['name' => 'bar'],
+                '$inc' => ['score' => 5],
+                '$push' => ['tags' => 'b'],
+            ],
+        );
+
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals('bar', $doc['name']);
+        $this->assertEquals(15, $doc['score']);
+        $this->assertEquals(['a', 'b'], (array)$doc['tags']);
+    }
+
+    public function testElemMatchComplex(): void
+    {
+        $this->collection->insertMany([
+            [
+                '_id' => '1',
+                'grades' => [
+                    ['val' => 80, 'mean' => 75],
+                    ['val' => 90, 'mean' => 85],
+                ],
+            ],
+            [
+                '_id' => '2',
+                'grades' => [
+                    ['val' => 85, 'mean' => 90],
+                ],
+            ],
+        ]);
+
+        $docs = iterator_to_array($this->collection->find([
+            'grades' => [
+                '$elemMatch' => [
+                    'val' => ['$gt' => 85],
+                    'mean' => ['$gt' => 80],
+                ],
+            ],
+        ]));
+
+        $this->assertCount(1, $docs);
+        $this->assertEquals('1', $docs[0]['_id']);
+    }
+
+    public function testLookupComplex(): void
+    {
+        $database = $this->getDatabase();
+        $orders = $database->getCollection('orders');
+        $products = $database->getCollection('products');
+        $categories = $database->getCollection('categories');
+
+        $orders->drop();
+        $products->drop();
+        $categories->drop();
+
+        $categories->insertMany([
+            ['_id' => 'c1', 'name' => 'Electronics'],
+            ['_id' => 'c2', 'name' => 'Accessories'],
+        ]);
+
+        $products->insertMany([
+            ['_id' => 'p1', 'name' => 'Laptop', 'cid' => 'c1'],
+            ['_id' => 'p2', 'name' => 'Mouse', 'cid' => 'c2'],
+        ]);
+
+        $orders->insertMany([
+            ['_id' => 'o1', 'pid' => 'p1', 'qty' => 1],
+        ]);
+
+        $pipeline = [
+            [
+                '$lookup' => [
+                    'from' => 'products',
+                    'localField' => 'pid',
+                    'foreignField' => '_id',
+                    'as' => 'product',
+                ],
+            ],
+            ['$unwind' => '$product'],
+            [
+                '$lookup' => [
+                    'from' => 'categories',
+                    'localField' => 'product.cid',
+                    'foreignField' => '_id',
+                    'as' => 'category',
+                ],
+            ],
+            ['$unwind' => '$category'],
+            ['$sort' => ['_id' => 1]],
+        ];
+
+        $result = $orders->aggregate($pipeline);
+        $docs = array_values(iterator_to_array($result));
+
+        $this->assertCount(1, $docs);
+        $this->assertEquals('o1', $docs[0]['_id']);
+        $this->assertEquals('Laptop', $docs[0]['product']['name']);
+        $this->assertEquals('Electronics', $docs[0]['category']['name']);
+    }
+
+    public function testNestedSortAndProjection(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'metadata' => ['order' => 2, 'label' => 'B']],
+            ['_id' => '2', 'metadata' => ['order' => 1, 'label' => 'A']],
+            ['_id' => '3', 'metadata' => ['order' => 3, 'label' => 'C']],
+        ]);
+
+        $result = $this->collection->find([], [
+            'sort' => ['metadata.order' => 1],
+            'projection' => ['metadata.label' => 1, '_id' => 1],
+        ]);
+        $docs = array_values(iterator_to_array($result));
+
+        $this->assertCount(3, $docs);
+        $this->assertEquals('2', $docs[0]['_id']);
+        $this->assertEquals('A', $docs[0]['metadata']['label']);
+        $this->assertArrayNotHasKey('order', $docs[0]['metadata']);
+    }
+
     public function testSelectAliases(): void
     {
         $client = $this->getClient();

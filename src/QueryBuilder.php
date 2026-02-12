@@ -65,16 +65,29 @@ final class QueryBuilder
                 // MongoDB doesn't allow mixing inclusion and exclusion except for _id
                 // We simplify: if there are inclusions, we use jsonb_build_object
                 $fields = [];
+                $topLevelInclusions = [];
+
                 foreach ($include as $field) {
-                    $fields[] = $this->pdo->quote($field);
-                    $fields[] = sprintf('data->%s', $this->pdo->quote($field));
+                    if ($field === '_id') {
+                        $topLevelInclusions['_id'] = "data->'_id'";
+                        continue;
+                    }
+
+                    $parts = explode('.', $field);
+                    $topKey = $parts[0];
+
+                    if (!isset($topLevelInclusions[$topKey])) {
+                        $topLevelInclusions[$topKey] = $this->buildNestedProjectionForTopKey($topKey, $include, 'data');
+                    }
                 }
 
-                if (!in_array('_id', $include, true) && (!isset($projection['_id']) || $projection['_id'])) {
-                     // if _id is not explicitly excluded and there are other inclusions, MongoDB usually includes it
-                     // but here we follow the "include" list strictly for simplicity or add _id if not excluded
-                     $fields[] = $this->pdo->quote('_id');
-                     $fields[] = "data->'_id'";
+                if (!isset($topLevelInclusions['_id']) && (!isset($projection['_id']) || $projection['_id'])) {
+                    $topLevelInclusions['_id'] = "data->'_id'";
+                }
+
+                foreach ($topLevelInclusions as $key => $expr) {
+                    $fields[] = $this->pdo->quote($key);
+                    $fields[] = $expr;
                 }
 
                 $column = sprintf('jsonb_build_object(%s)', implode(', ', $fields));
@@ -97,7 +110,14 @@ final class QueryBuilder
             foreach ($options['sort'] as $field => $direction) {
                 $dir = $direction === 1 || $direction === 'asc' ? 'ASC' : 'DESC';
                 if ($field === '_id') {
-                    $sortParts[] = sprintf("data->>\'_id\' %s", $dir);
+                    $sortParts[] = sprintf("data->>'_id' %s", $dir);
+                } elseif (str_contains($field, '.')) {
+                    $parts = explode('.', $field);
+                    $expression = 'data';
+                    foreach ($parts as $part) {
+                        $expression = sprintf('%s->%s', $expression, $this->pdo->quote($part));
+                    }
+                    $sortParts[] = sprintf('%s %s', $expression, $dir);
                 } else {
                     $sortParts[] = sprintf('data->%s %s', $this->pdo->quote($field), $dir);
                 }
@@ -195,11 +215,17 @@ final class QueryBuilder
 
         if ($pushData) {
             foreach ($pushData as $field => $value) {
+                if (is_array($value) && isset($value['$each'])) {
+                    $pushValue = json_encode($value['$each']);
+                } else {
+                    $pushValue = json_encode([$value]);
+                }
+
                 $updateParts[] = sprintf(
                     'jsonb_set(data, %s, COALESCE(data->%s, \'[]\'::jsonb) || %s)',
                     $this->pdo->quote('{' . $field . '}'),
                     $this->pdo->quote($field),
-                    $this->pdo->quote(json_encode($value)),
+                    $this->pdo->quote($pushValue),
                 );
             }
         }
@@ -518,19 +544,37 @@ final class QueryBuilder
 
                     $foreignTable = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($from);
 
+                    $localFieldExpression = 't.data';
+                    if ($localField === '_id') {
+                        $localFieldExpression = "t.data->'_id'";
+                    } else {
+                        foreach (explode('.', $localField) as $part) {
+                            $localFieldExpression = sprintf('%s->%s', $localFieldExpression, $this->pdo->quote($part));
+                        }
+                    }
+
+                    $foreignFieldExpression = 'data';
+                    if ($foreignField === '_id') {
+                        $foreignFieldExpression = "data->'_id'";
+                    } else {
+                        foreach (explode('.', $foreignField) as $part) {
+                            $foreignFieldExpression = sprintf('%s->%s', $foreignFieldExpression, $this->pdo->quote($part));
+                        }
+                    }
+
                     $currentQuery = sprintf(
                         'SELECT t.data || jsonb_build_object(%s, COALESCE(l.matches, \'[]\'::jsonb)) AS data
                          FROM (%s) AS t
                          LEFT JOIN LATERAL (
                              SELECT jsonb_agg(data) AS matches
                              FROM %s
-                             WHERE data->%s = t.data->%s
+                             WHERE %s = %s
                          ) l ON true',
                         $this->pdo->quote($as),
                         $currentQuery,
                         $foreignTable,
-                        $this->pdo->quote($foreignField),
-                        $this->pdo->quote($localField),
+                        $foreignFieldExpression,
+                        $localFieldExpression,
                     );
                 }
             }
@@ -611,6 +655,17 @@ final class QueryBuilder
             return sprintf("%s->>'_id' = %s", $column, $this->pdo->quote((string)$value));
         }
 
+        if (str_contains($field, '.')) {
+            $parts = explode('.', $field);
+            $expression = $column;
+            $lastKey = array_pop($parts);
+            foreach ($parts as $part) {
+                $expression = sprintf('%s->%s', $expression, $this->pdo->quote($part));
+            }
+
+            return sprintf('%s @> %s', $expression, $this->pdo->quote(json_encode([$lastKey => $value])));
+        }
+
         return sprintf('%s @> %s', $column, $this->pdo->quote(json_encode([$field => $value])));
     }
 
@@ -628,6 +683,14 @@ final class QueryBuilder
     private function buildOperatorFilter(string $field, string $operator, mixed $operand, array $allOperators = [], string $column = 'data'): string
     {
         $fieldExpression = $field === '_id' ? sprintf("%s->>'_id'", $column) : sprintf('%s->%s', $column, $this->pdo->quote($field));
+
+        if (str_contains($field, '.') && $field !== '_id') {
+            $parts = explode('.', $field);
+            $fieldExpression = $column;
+            foreach ($parts as $part) {
+                $fieldExpression = sprintf('%s->%s', $fieldExpression, $this->pdo->quote($part));
+            }
+        }
 
         if ($operator === '$not') {
             return sprintf('NOT (%s)', $this->buildFieldFilter($field, $operand, $column));
@@ -844,6 +907,42 @@ final class QueryBuilder
             $this->quoteIdentifier($oldName),
             $this->quoteIdentifier($newName),
         );
+    }
+
+    private function buildNestedProjectionForTopKey(string $topKey, array $allInclusions, string $column): string
+    {
+        $relevant = [];
+        foreach ($allInclusions as $field) {
+            if ($field === $topKey) {
+                return sprintf('%s->%s', $column, $this->pdo->quote($topKey));
+            }
+
+            if (str_starts_with($field, $topKey . '.')) {
+                $relevant[] = substr($field, strlen($topKey) + 1);
+            }
+        }
+
+        if (empty($relevant)) {
+            return sprintf('%s->%s', $column, $this->pdo->quote($topKey));
+        }
+
+        $fields = [];
+        $subTopLevel = [];
+        foreach ($relevant as $field) {
+            $parts = explode('.', $field);
+            $subKey = $parts[0];
+
+            if (!isset($subTopLevel[$subKey])) {
+                $subTopLevel[$subKey] = $this->buildNestedProjectionForTopKey($subKey, $relevant, sprintf('%s->%s', $column, $this->pdo->quote($topKey)));
+            }
+        }
+
+        foreach ($subTopLevel as $key => $expr) {
+            $fields[] = $this->pdo->quote($key);
+            $fields[] = $expr;
+        }
+
+        return sprintf('jsonb_build_object(%s)', implode(', ', $fields));
     }
 
     private function quoteIdentifier(string $identifier): string

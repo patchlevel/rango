@@ -96,7 +96,7 @@ $collection->updateOne(
 | Category | Operators |
 | --- | --- |
 | **Field** | `$set`, `$inc`, `$unset`, `$rename`, `$min`, `$max`, `$currentDate` |
-| **Array** | `$push`, `$pull`, `$addToSet`, `$pop` |
+| **Array** | `$push` (inc. `$each`), `$pull`, `$addToSet`, `$pop` |
 | **Bitwise** | `$bit` (`and`, `or`, `xor`) |
 
 ### Management

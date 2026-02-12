@@ -19,10 +19,7 @@ class Collection
      */
     public function countDocuments(array $filter = [], array $options = []): int
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'count', [
-            'filter' => $filter,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\Count($this->databaseName, $this->collectionName, $filter, $options));
     }
 
     /**
@@ -31,10 +28,7 @@ class Collection
      */
     public function deleteMany(array $filter, array $options = []): Result
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'deleteMany', [
-            'filter' => $filter,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, true));
     }
 
     /**
@@ -43,15 +37,12 @@ class Collection
      */
     public function deleteOne(array $filter, array $options = []): Result
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'deleteOne', [
-            'filter' => $filter,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, false));
     }
 
     public function drop(): void
     {
-        $this->client->execute($this->databaseName, $this->collectionName, 'drop', []);
+        $this->client->run(new Operation\DropCollection($this->databaseName, $this->collectionName));
     }
 
     /**
@@ -60,10 +51,7 @@ class Collection
      */
     public function find(array $filter = [], array $options = []): Result
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'find', [
-            'filter' => $filter,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\Find($this->databaseName, $this->collectionName, $filter, $options));
     }
 
     /**
@@ -72,10 +60,7 @@ class Collection
      */
     public function findOne(array $filter = [], array $options = []): array|object|null
     {
-        $result = $this->client->execute($this->databaseName, $this->collectionName, 'findOne', [
-            'filter' => $filter,
-            'options' => $options,
-        ]);
+        $result = $this->client->run(new Operation\FindOne($this->databaseName, $this->collectionName, $filter, $options));
 
         if (!$result instanceof Result) {
             return null;
@@ -92,10 +77,7 @@ class Collection
      */
     public function insertMany(array $documents, array $options = []): Result
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'insertMany', [
-            'documents' => $documents,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\InsertMany($this->databaseName, $this->collectionName, $documents, $options));
     }
 
     /**
@@ -104,10 +86,7 @@ class Collection
      */
     public function insertOne(array $document, array $options = []): Result
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'insertOne', [
-            'document' => $document,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\InsertOne($this->databaseName, $this->collectionName, $document, $options));
     }
 
     /**
@@ -117,11 +96,7 @@ class Collection
      */
     public function replaceOne(array $filter, array $replacement, array $options = []): Result
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'replaceOne', [
-            'filter' => $filter,
-            'replacement' => $replacement,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\ReplaceOne($this->databaseName, $this->collectionName, $filter, $replacement, $options));
     }
 
     /**
@@ -131,11 +106,7 @@ class Collection
      */
     public function updateMany(array $filter, array $update, array $options = []): Result
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'updateMany', [
-            'filter' => $filter,
-            'update' => $update,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, true));
     }
 
     /**
@@ -145,11 +116,7 @@ class Collection
      */
     public function updateOne(array $filter, array $update, array $options = []): Result
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'updateOne', [
-            'filter' => $filter,
-            'update' => $update,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, false));
     }
 
     /**
@@ -158,10 +125,7 @@ class Collection
      */
     public function aggregate(array $pipeline, array $options = []): Result
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'aggregate', [
-            'pipeline' => $pipeline,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\Aggregate($this->databaseName, $this->collectionName, $pipeline, $options));
     }
 
     /**
@@ -172,11 +136,7 @@ class Collection
      */
     public function distinct(string $fieldName, array $filter = [], array $options = []): array
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'distinct', [
-            'fieldName' => $fieldName,
-            'filter' => $filter,
-            'options' => $options,
-        ]);
+        return $this->client->run(new Operation\Distinct($this->databaseName, $this->collectionName, $fieldName, $filter, $options));
     }
 
     /**
@@ -185,10 +145,7 @@ class Collection
      */
     public function findOneAndDelete(array $filter, array $options = []): array|object|null
     {
-        $result = $this->client->execute($this->databaseName, $this->collectionName, 'findOneAndDelete', [
-            'filter' => $filter,
-            'options' => $options,
-        ]);
+        $result = $this->client->run(new Operation\FindOneAndDelete($this->databaseName, $this->collectionName, $filter, $options));
 
         if (!$result instanceof Result) {
             return null;
@@ -206,11 +163,7 @@ class Collection
      */
     public function findOneAndReplace(array $filter, array $replacement, array $options = []): array|object|null
     {
-        $result = $this->client->execute($this->databaseName, $this->collectionName, 'findOneAndReplace', [
-            'filter' => $filter,
-            'replacement' => $replacement,
-            'options' => $options,
-        ]);
+        $result = $this->client->run(new Operation\FindOneAndReplace($this->databaseName, $this->collectionName, $filter, $replacement, $options));
 
         if (!$result instanceof Result) {
             return null;
@@ -228,11 +181,7 @@ class Collection
      */
     public function findOneAndUpdate(array $filter, array $update, array $options = []): array|object|null
     {
-        $result = $this->client->execute($this->databaseName, $this->collectionName, 'findOneAndUpdate', [
-            'filter' => $filter,
-            'update' => $update,
-            'options' => $options,
-        ]);
+        $result = $this->client->run(new Operation\FindOneAndUpdate($this->databaseName, $this->collectionName, $filter, $update, $options));
 
         if (!$result instanceof Result) {
             return null;
@@ -249,10 +198,7 @@ class Collection
      */
     public function bulkWrite(array $operations, array $options = []): void
     {
-        $this->client->execute($this->databaseName, $this->collectionName, 'bulkWrite', [
-            'operations' => $operations,
-            'options' => $options,
-        ]);
+        $this->client->run(new Operation\BulkWrite($this->databaseName, $this->collectionName, $operations, $options));
     }
 
     /**
@@ -261,17 +207,12 @@ class Collection
      */
     public function createIndex(array $key, array $options = []): void
     {
-        $this->client->execute($this->databaseName, $this->collectionName, 'createIndex', [
-            'key' => $key,
-            'options' => $options,
-        ]);
+        $this->client->run(new Operation\CreateIndex($this->databaseName, $this->collectionName, $key, $options));
     }
 
     public function dropIndex(string $name): void
     {
-        $this->client->execute($this->databaseName, $this->collectionName, 'dropIndex', [
-            'name' => $name,
-        ]);
+        $this->client->run(new Operation\DropIndex($this->databaseName, $this->collectionName, $name));
     }
 
     /**
@@ -279,6 +220,6 @@ class Collection
      */
     public function listIndexes(): array
     {
-        return $this->client->execute($this->databaseName, $this->collectionName, 'listIndexes', []);
+        return $this->client->run(new Operation\ListIndexes($this->databaseName, $this->collectionName));
     }
 }
