@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\QueryBuilder;
-use Patchlevel\Rango\Result;
+use Patchlevel\Rango\UpdateResult;
 use PDO;
 
 final class Update implements Operation
@@ -21,11 +21,20 @@ final class Update implements Operation
     ) {
     }
 
-    public function execute(PDO $pdo, QueryBuilder $queryBuilder): Result
+    public function execute(PDO $pdo, QueryBuilder $queryBuilder): UpdateResult
     {
+        $upsert = $this->options['upsert'] ?? false;
         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $this->filter, $this->update, $this->options, $this->multi);
-        $pdo->exec($sql);
+        $rowCount = $pdo->exec($sql);
 
-        return new Result();
+        if ($upsert && $rowCount === 1) {
+            $matchedCount = 0;
+            $upsertedId = $this->filter['_id'] ?? null;
+        } else {
+            $matchedCount = $rowCount;
+            $upsertedId = null;
+        }
+
+        return new UpdateResult($matchedCount, $rowCount, $upsertedId);
     }
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\QueryBuilder;
-use Patchlevel\Rango\Result;
+use Patchlevel\Rango\Cursor;
 use PDO;
 
 final class FindOneAndUpdate implements Operation
@@ -20,7 +20,7 @@ final class FindOneAndUpdate implements Operation
     ) {
     }
 
-    public function execute(PDO $pdo, QueryBuilder $queryBuilder): Result|null
+    public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor|null
     {
         $sql = $queryBuilder->createSelect($this->database, $this->collection, $this->filter, ['limit' => 1]);
         $statement = $pdo->query($sql);
@@ -33,6 +33,6 @@ final class FindOneAndUpdate implements Operation
         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $this->filter, $this->update, $this->options, false);
         $pdo->exec($sql);
 
-        return new Result([$data]);
+        return new Cursor([$data]);
     }
 }

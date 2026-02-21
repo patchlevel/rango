@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango\Operation;
 
+use Patchlevel\Rango\InsertManyResult;
 use Patchlevel\Rango\QueryBuilder;
-use Patchlevel\Rango\Result;
 use PDO;
 
 use function bin2hex;
-use function json_encode;
 use function random_bytes;
 
 final class InsertMany implements Operation
@@ -23,9 +22,9 @@ final class InsertMany implements Operation
     ) {
     }
 
-    public function execute(PDO $pdo, QueryBuilder $queryBuilder): Result
+    public function execute(PDO $pdo, QueryBuilder $queryBuilder): InsertManyResult
     {
-        $documents = [];
+        $insertedIds = [];
         foreach ($this->documents as $document) {
             if (!isset($document['_id'])) {
                 $document['_id'] = bin2hex(random_bytes(12));
@@ -33,9 +32,9 @@ final class InsertMany implements Operation
 
             $sql = $queryBuilder->createInsert($this->database, $this->collection, $document);
             $pdo->exec($sql);
-            $documents[] = json_encode($document);
+            $insertedIds[] = $document['_id'];
         }
 
-        return new Result($documents);
+        return new InsertManyResult($insertedIds);
     }
 }

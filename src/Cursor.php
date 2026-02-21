@@ -17,27 +17,12 @@ use function json_decode;
  * @template T
  * @implements IteratorAggregate<int, T>
  */
-class Result implements IteratorAggregate, Countable
+class Cursor implements IteratorAggregate, Countable
 {
     /** @param list<string>|PDOStatement $data */
     public function __construct(
         private readonly array|PDOStatement $data = [],
     ) {
-    }
-
-    public function getInsertedId(): string|null
-    {
-        if ($this->data instanceof PDOStatement) {
-            return null;
-        }
-
-        if (count($this->data) === 0) {
-            return null;
-        }
-
-        $first = json_decode($this->data[0], true);
-
-        return $first['_id'] ?? null;
     }
 
     /** @return Traversable<int, array<string, mixed>> */

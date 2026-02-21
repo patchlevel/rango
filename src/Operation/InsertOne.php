@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango\Operation;
 
+use Patchlevel\Rango\InsertOneResult;
 use Patchlevel\Rango\QueryBuilder;
-use Patchlevel\Rango\Result;
 use PDO;
 
 use function bin2hex;
-use function json_encode;
 use function random_bytes;
 
 final class InsertOne implements Operation
@@ -23,7 +22,7 @@ final class InsertOne implements Operation
     ) {
     }
 
-    public function execute(PDO $pdo, QueryBuilder $queryBuilder): Result
+    public function execute(PDO $pdo, QueryBuilder $queryBuilder): InsertOneResult
     {
         if (!isset($this->document['_id'])) {
             $this->document['_id'] = bin2hex(random_bytes(12));
@@ -32,6 +31,6 @@ final class InsertOne implements Operation
         $sql = $queryBuilder->createInsert($this->database, $this->collection, $this->document);
         $pdo->exec($sql);
 
-        return new Result([json_encode($this->document)]);
+        return new InsertOneResult($this->document['_id']);
     }
 }

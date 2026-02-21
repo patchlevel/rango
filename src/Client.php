@@ -6,11 +6,6 @@ namespace Patchlevel\Rango;
 
 use PDO;
 
-use function array_map;
-use function bin2hex;
-use function json_decode;
-use function json_encode;
-use function random_bytes;
 use function sprintf;
 
 final class Client

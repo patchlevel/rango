@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\QueryBuilder;
-use Patchlevel\Rango\Result;
+use Patchlevel\Rango\Cursor;
 use PDO;
 
 final class Aggregate implements Operation
@@ -19,15 +19,15 @@ final class Aggregate implements Operation
     ) {
     }
 
-    public function execute(PDO $pdo, QueryBuilder $queryBuilder): Result
+    public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor
     {
         $sql = $queryBuilder->createAggregate($this->database, $this->collection, $this->pipeline, $this->options);
         $statement = $pdo->query($sql);
 
         if ($statement === false) {
-            return new Result([]);
+            return new Cursor([]);
         }
 
-        return new Result($statement);
+        return new Cursor($statement);
     }
 }

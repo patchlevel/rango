@@ -18,6 +18,9 @@ use function is_array;
 use function iterator_to_array;
 use function sort;
 
+/**
+ * @internal
+ */
 abstract class IntegrationTest extends TestCase
 {
     protected MongoDbCollection|RangoCollection $collection;
@@ -38,7 +41,11 @@ abstract class IntegrationTest extends TestCase
 
     public function testInsertOneAndFind(): void
     {
-        $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
+        $result = $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
+
+        $this->assertEquals(1, $result->getInsertedCount());
+        $this->assertEquals('1', $result->getInsertedId());
+        $this->assertTrue($result->isAcknowledged());
 
         $result = $this->collection->find(['name' => 'foo']);
         $docs = iterator_to_array($result);
@@ -50,10 +57,14 @@ abstract class IntegrationTest extends TestCase
 
     public function testInsertManyAndCount(): void
     {
-        $this->collection->insertMany([
+        $result = $this->collection->insertMany([
             ['_id' => '1', 'name' => 'foo'],
             ['_id' => '2', 'name' => 'bar'],
         ]);
+
+        $this->assertEquals(2, $result->getInsertedCount());
+        $this->assertEquals(['1', '2'], $result->getInsertedIds());
+        $this->assertTrue($result->isAcknowledged());
 
         $this->assertEquals(2, $this->collection->countDocuments());
         $this->assertEquals(1, $this->collection->countDocuments(['name' => 'foo']));
@@ -73,7 +84,11 @@ abstract class IntegrationTest extends TestCase
     public function testUpdateOne(): void
     {
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
-        $this->collection->updateOne(['_id' => '1'], ['$set' => ['name' => 'bar']]);
+        $result = $this->collection->updateOne(['_id' => '1'], ['$set' => ['name' => 'bar']]);
+
+        $this->assertEquals(1, $result->getMatchedCount());
+        $this->assertEquals(1, $result->getModifiedCount());
+        $this->assertTrue($result->isAcknowledged());
 
         $doc = $this->collection->findOne(['_id' => '1']);
 
@@ -86,7 +101,11 @@ abstract class IntegrationTest extends TestCase
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
         $this->assertEquals(1, $this->collection->countDocuments());
 
-        $this->collection->deleteOne(['_id' => '1']);
+        $result = $this->collection->deleteOne(['_id' => '1']);
+
+        $this->assertEquals(1, $result->getDeletedCount());
+        $this->assertTrue($result->isAcknowledged());
+
         $this->assertEquals(0, $this->collection->countDocuments());
     }
 
@@ -129,7 +148,10 @@ abstract class IntegrationTest extends TestCase
     public function testReplaceOne(): void
     {
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo', 'age' => 42]);
-        $this->collection->replaceOne(['_id' => '1'], ['_id' => '1', 'name' => 'bar']);
+        $result = $this->collection->replaceOne(['_id' => '1'], ['_id' => '1', 'name' => 'bar']);
+
+        $this->assertEquals(1, $result->getMatchedCount());
+        $this->assertEquals(1, $result->getModifiedCount());
 
         $doc = $this->collection->findOne(['_id' => '1']);
         $this->assertEquals('bar', $doc['name']);
@@ -214,12 +236,20 @@ abstract class IntegrationTest extends TestCase
 
     public function testUpsert(): void
     {
-        $this->collection->updateOne(['_id' => '1'], ['$set' => ['name' => 'foo']], ['upsert' => true]);
+        $result = $this->collection->updateOne(['_id' => '1'], ['$set' => ['name' => 'foo']], ['upsert' => true]);
+        $this->assertEquals(0, $result->getMatchedCount());
+        $this->assertEquals(1, $result->getUpsertedCount());
+        $this->assertEquals('1', $result->getUpsertedId());
+
         $doc = $this->collection->findOne(['_id' => '1']);
         $this->assertNotNull($doc);
         $this->assertEquals('foo', $doc['name']);
 
-        $this->collection->replaceOne(['_id' => '2'], ['_id' => '2', 'name' => 'bar'], ['upsert' => true]);
+        $result = $this->collection->replaceOne(['_id' => '2'], ['_id' => '2', 'name' => 'bar'], ['upsert' => true]);
+        $this->assertEquals(0, $result->getMatchedCount());
+        $this->assertEquals(1, $result->getUpsertedCount());
+        $this->assertEquals('2', $result->getUpsertedId());
+
         $doc = $this->collection->findOne(['_id' => '2']);
         $this->assertNotNull($doc);
         $this->assertEquals('bar', $doc['name']);
@@ -574,12 +604,19 @@ abstract class IntegrationTest extends TestCase
 
     public function testBulkWrite(): void
     {
-        $this->collection->bulkWrite([
+        $result = $this->collection->bulkWrite([
             ['insertOne' => [['_id' => '1', 'v' => 1]]],
             ['insertOne' => [['_id' => '2', 'v' => 2]]],
             ['updateOne' => [['_id' => '1'], ['$set' => ['v' => 10]]]],
             ['deleteOne' => [['_id' => '2']]],
         ]);
+
+        $this->assertEquals(2, $result->getInsertedCount());
+        $this->assertEquals(1, $result->getMatchedCount());
+        $this->assertEquals(1, $result->getModifiedCount());
+        $this->assertEquals(1, $result->getDeletedCount());
+        $this->assertEquals(['1', '2'], $result->getInsertedIds());
+        $this->assertTrue($result->isAcknowledged());
 
         $this->assertEquals(1, $this->collection->countDocuments());
         $doc = $this->collection->findOne(['_id' => '1']);
@@ -594,7 +631,10 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '3', 'name' => 'baz', 'active' => true],
         ]);
 
-        $this->collection->updateMany(['active' => false], ['$set' => ['active' => true]]);
+        $result = $this->collection->updateMany(['active' => false], ['$set' => ['active' => true]]);
+
+        $this->assertEquals(2, $result->getMatchedCount());
+        $this->assertEquals(2, $result->getModifiedCount());
 
         $this->assertEquals(3, $this->collection->countDocuments(['active' => true]));
     }
@@ -607,7 +647,9 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '3', 'name' => 'bar'],
         ]);
 
-        $this->collection->deleteMany(['name' => 'foo']);
+        $result = $this->collection->deleteMany(['name' => 'foo']);
+
+        $this->assertEquals(2, $result->getDeletedCount());
 
         $this->assertEquals(1, $this->collection->countDocuments());
     }
@@ -650,10 +692,14 @@ abstract class IntegrationTest extends TestCase
 
     public function testImplicitIdMany(): void
     {
-        $this->collection->insertMany([
+        $result = $this->collection->insertMany([
             ['name' => 'foo'],
             ['name' => 'bar'],
         ]);
+
+        $this->assertEquals(2, $result->getInsertedCount());
+        $insertedIds = $result->getInsertedIds();
+        $this->assertCount(2, $insertedIds);
 
         $this->assertEquals(2, $this->collection->countDocuments());
 
@@ -662,6 +708,9 @@ abstract class IntegrationTest extends TestCase
         $this->assertArrayHasKey('_id', $docs[0]);
         $this->assertArrayHasKey('_id', $docs[1]);
         $this->assertNotEquals($docs[0]['_id'], $docs[1]['_id']);
+
+        $this->assertContains((string)$docs[0]['_id'], array_map(static fn ($id) => (string)$id, $insertedIds));
+        $this->assertContains((string)$docs[1]['_id'], array_map(static fn ($id) => (string)$id, $insertedIds));
     }
 
     public function testAggregateWithLimitAndSkip(): void

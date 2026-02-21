@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango\Operation;
 
+use Patchlevel\Rango\DeleteResult;
 use Patchlevel\Rango\QueryBuilder;
-use Patchlevel\Rango\Result;
 use PDO;
 
 final class Delete implements Operation
@@ -19,11 +19,11 @@ final class Delete implements Operation
     ) {
     }
 
-    public function execute(PDO $pdo, QueryBuilder $queryBuilder): Result
+    public function execute(PDO $pdo, QueryBuilder $queryBuilder): DeleteResult
     {
         $sql = $queryBuilder->createDelete($this->database, $this->collection, $this->filter, $this->multi);
-        $pdo->exec($sql);
+        $rowCount = $pdo->exec($sql);
 
-        return new Result();
+        return new DeleteResult($rowCount);
     }
 }

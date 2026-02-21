@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
-class Collection
+/**
+ * @template T of array
+ */
+final class Collection
 {
     public function __construct(
         private readonly Client $client,
@@ -26,7 +29,7 @@ class Collection
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
      */
-    public function deleteMany(array $filter, array $options = []): Result
+    public function deleteMany(array $filter, array $options = []): DeleteResult
     {
         return $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, true));
     }
@@ -35,7 +38,7 @@ class Collection
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
      */
-    public function deleteOne(array $filter, array $options = []): Result
+    public function deleteOne(array $filter, array $options = []): DeleteResult
     {
         return $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, false));
     }
@@ -48,8 +51,10 @@ class Collection
     /**
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
+     *
+     * @return Cursor<T>
      */
-    public function find(array $filter = [], array $options = []): Result
+    public function find(array $filter = [], array $options = []): Cursor
     {
         return $this->client->run(new Operation\Find($this->databaseName, $this->collectionName, $filter, $options));
     }
@@ -57,12 +62,14 @@ class Collection
     /**
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
+     *
+     * @return T|null
      */
-    public function findOne(array $filter = [], array $options = []): array|object|null
+    public function findOne(array $filter = [], array $options = []): array|null
     {
         $result = $this->client->run(new Operation\FindOne($this->databaseName, $this->collectionName, $filter, $options));
 
-        if (!$result instanceof Result) {
+        if (!$result instanceof Cursor) {
             return null;
         }
 
@@ -75,7 +82,7 @@ class Collection
      * @param list<array<string, mixed>> $documents
      * @param array<string, mixed>       $options
      */
-    public function insertMany(array $documents, array $options = []): Result
+    public function insertMany(array $documents, array $options = []): InsertManyResult
     {
         return $this->client->run(new Operation\InsertMany($this->databaseName, $this->collectionName, $documents, $options));
     }
@@ -84,7 +91,7 @@ class Collection
      * @param array<string, mixed> $document
      * @param array<string, mixed> $options
      */
-    public function insertOne(array $document, array $options = []): Result
+    public function insertOne(array $document, array $options = []): InsertOneResult
     {
         return $this->client->run(new Operation\InsertOne($this->databaseName, $this->collectionName, $document, $options));
     }
@@ -94,7 +101,7 @@ class Collection
      * @param array<string, mixed> $replacement
      * @param array<string, mixed> $options
      */
-    public function replaceOne(array $filter, array $replacement, array $options = []): Result
+    public function replaceOne(array $filter, array $replacement, array $options = []): UpdateResult
     {
         return $this->client->run(new Operation\ReplaceOne($this->databaseName, $this->collectionName, $filter, $replacement, $options));
     }
@@ -104,7 +111,7 @@ class Collection
      * @param array<string, mixed> $update
      * @param array<string, mixed> $options
      */
-    public function updateMany(array $filter, array $update, array $options = []): Result
+    public function updateMany(array $filter, array $update, array $options = []): UpdateResult
     {
         return $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, true));
     }
@@ -114,7 +121,7 @@ class Collection
      * @param array<string, mixed> $update
      * @param array<string, mixed> $options
      */
-    public function updateOne(array $filter, array $update, array $options = []): Result
+    public function updateOne(array $filter, array $update, array $options = []): UpdateResult
     {
         return $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, false));
     }
@@ -122,8 +129,10 @@ class Collection
     /**
      * @param list<array<string, mixed>> $pipeline
      * @param array<string, mixed>       $options
+     *
+     * @return Cursor<T>
      */
-    public function aggregate(array $pipeline, array $options = []): Result
+    public function aggregate(array $pipeline, array $options = []): Cursor
     {
         return $this->client->run(new Operation\Aggregate($this->databaseName, $this->collectionName, $pipeline, $options));
     }
@@ -142,12 +151,14 @@ class Collection
     /**
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
+     *
+     * @return T|null
      */
-    public function findOneAndDelete(array $filter, array $options = []): array|object|null
+    public function findOneAndDelete(array $filter, array $options = []): array|null
     {
         $result = $this->client->run(new Operation\FindOneAndDelete($this->databaseName, $this->collectionName, $filter, $options));
 
-        if (!$result instanceof Result) {
+        if (!$result instanceof Cursor) {
             return null;
         }
 
@@ -160,12 +171,14 @@ class Collection
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $replacement
      * @param array<string, mixed> $options
+     *
+     * @return T|null
      */
-    public function findOneAndReplace(array $filter, array $replacement, array $options = []): array|object|null
+    public function findOneAndReplace(array $filter, array $replacement, array $options = []): array|null
     {
         $result = $this->client->run(new Operation\FindOneAndReplace($this->databaseName, $this->collectionName, $filter, $replacement, $options));
 
-        if (!$result instanceof Result) {
+        if (!$result instanceof Cursor) {
             return null;
         }
 
@@ -178,12 +191,14 @@ class Collection
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $update
      * @param array<string, mixed> $options
+     *
+     * @return T|null
      */
-    public function findOneAndUpdate(array $filter, array $update, array $options = []): array|object|null
+    public function findOneAndUpdate(array $filter, array $update, array $options = []): array|null
     {
         $result = $this->client->run(new Operation\FindOneAndUpdate($this->databaseName, $this->collectionName, $filter, $update, $options));
 
-        if (!$result instanceof Result) {
+        if (!$result instanceof Cursor) {
             return null;
         }
 
@@ -196,9 +211,9 @@ class Collection
      * @param list<array<string, array<string, mixed>>> $operations
      * @param array<string, mixed>                      $options
      */
-    public function bulkWrite(array $operations, array $options = []): void
+    public function bulkWrite(array $operations, array $options = []): BulkWriteResult
     {
-        $this->client->run(new Operation\BulkWrite($this->databaseName, $this->collectionName, $operations, $options));
+        return $this->client->run(new Operation\BulkWrite($this->databaseName, $this->collectionName, $operations, $options));
     }
 
     /**

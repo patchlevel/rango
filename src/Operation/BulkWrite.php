@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango\Operation;
 
+use Patchlevel\Rango\BulkWriteResult;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
+use Throwable;
 
 use function bin2hex;
 use function random_bytes;
@@ -21,8 +23,16 @@ final class BulkWrite implements Operation
     ) {
     }
 
-    public function execute(PDO $pdo, QueryBuilder $queryBuilder): null
+    public function execute(PDO $pdo, QueryBuilder $queryBuilder): BulkWriteResult
     {
+        $insertedCount = 0;
+        $matchedCount = 0;
+        $modifiedCount = 0;
+        $deletedCount = 0;
+        $upsertedCount = 0;
+        $insertedIds = [];
+        $upsertedIds = [];
+
         $pdo->beginTransaction();
 
         try {
@@ -35,30 +45,48 @@ final class BulkWrite implements Operation
                         }
                         $sql = $queryBuilder->createInsert($this->database, $this->collection, $document);
                         $pdo->exec($sql);
+                        $insertedCount++;
+                        $insertedIds[] = $document['_id'];
                     } elseif ($type === 'updateOne') {
                         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $args[0], $args[1], $args[2] ?? [], false);
-                        $pdo->exec($sql);
+                        $rowCount = $pdo->exec($sql);
+                        $matchedCount += $rowCount;
+                        $modifiedCount += $rowCount;
                     } elseif ($type === 'updateMany') {
                         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $args[0], $args[1], $args[2] ?? [], true);
-                        $pdo->exec($sql);
+                        $rowCount = $pdo->exec($sql);
+                        $matchedCount += $rowCount;
+                        $modifiedCount += $rowCount;
                     } elseif ($type === 'replaceOne') {
                         $sql = $queryBuilder->createReplace($this->database, $this->collection, $args[0], $args[1], $args[2] ?? []);
-                        $pdo->exec($sql);
+                        $rowCount = $pdo->exec($sql);
+                        $matchedCount += $rowCount;
+                        $modifiedCount += $rowCount;
                     } elseif ($type === 'deleteOne') {
                         $sql = $queryBuilder->createDelete($this->database, $this->collection, $args[0], false);
-                        $pdo->exec($sql);
+                        $rowCount = $pdo->exec($sql);
+                        $deletedCount += $rowCount;
                     } elseif ($type === 'deleteMany') {
                         $sql = $queryBuilder->createDelete($this->database, $this->collection, $args[0], true);
-                        $pdo->exec($sql);
+                        $rowCount = $pdo->exec($sql);
+                        $deletedCount += $rowCount;
                     }
                 }
             }
             $pdo->commit();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $pdo->rollBack();
             throw $e;
         }
 
-        return null;
+        return new BulkWriteResult(
+            $insertedCount,
+            $matchedCount,
+            $modifiedCount,
+            $deletedCount,
+            $upsertedCount,
+            $insertedIds,
+            $upsertedIds,
+        );
     }
 }
