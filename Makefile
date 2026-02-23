@@ -23,7 +23,7 @@ phpstan-baseline: vendor                                                        
 
 .PHONY: phpunit
 phpunit: vendor                                                                 ## run phpunit tests
-	XDEBUG_MODE=coverage vendor/bin/phpunit
+	MONGODB_URI="mongodb://localhost:27017" POSTGRES_URI="pgsql:host=localhost;port=5432;dbname=eventstore;user=postgres;password=postgres" XDEBUG_MODE=coverage vendor/bin/phpunit
 
 .PHONY: infection
 infection: vendor                                                               ## run infection

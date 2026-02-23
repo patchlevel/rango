@@ -15,13 +15,18 @@ final class MongoIntegrationTest extends IntegrationTest
 {
     protected function getClient(): Client
     {
-        $uri = getenv('MONGODB_URI') ?: 'mongodb://localhost:27017';
+        return new Client(getenv('MONGODB_URI'));
+    }
 
+    protected function setUp(): void
+    {
         if (!class_exists(Client::class)) {
             $this->markTestSkipped('mongodb/mongodb is not installed');
         }
 
-        return new Client($uri);
+        getenv('MONGODB_URI') ?: $this->markTestSkipped('MONGODB_URI is not set');
+
+        parent::setUp();
     }
 
     protected function getCollection(): Collection

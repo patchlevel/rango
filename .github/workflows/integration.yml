@@ -44,7 +44,7 @@ jobs:
                   - "18.1"
 
         env:
-            DB_URL: 'pdo-pgsql://postgres:postgres@localhost:5432/eventstore?charset=utf8'
+          POSTGRES_URI: 'pdo-pgsql://postgres:postgres@localhost:5432/eventstore?charset=utf8'
 
         steps:
             - name: "Checkout"
@@ -99,7 +99,7 @@ jobs:
             - "12.1"
 
       env:
-        DB_URL: 'mongodb://localhost:27017'
+        MONGODB_URI: 'mongodb://localhost:27017'
 
       steps:
         - name: "Checkout"

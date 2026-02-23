@@ -12,11 +12,16 @@ use function getenv;
 
 final class PostgresIntegrationTest extends IntegrationTest
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        getenv('POSTGRES_URI') ?: $this->markTestSkipped('POSTGRES_URI is not set');
+    }
+
     protected function getClient(): Client
     {
-        $uri = getenv('POSTGRES_URI') ?: 'pgsql:host=localhost;port=5432;dbname=eventstore;user=postgres;password=postgres';
-
-        return new Client($uri);
+        return new Client(getenv('POSTGRES_URI'));
     }
 
     protected function getCollection(): Collection
