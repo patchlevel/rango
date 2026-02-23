@@ -72,16 +72,12 @@ jobs:
       runs-on: ${{ matrix.operating-system }}
 
       services:
-        mariadb:
-          image: "mongodb:${{ matrix.mariadb-version }}"
-          env:
-            MYSQL_ALLOW_EMPTY_PASSWORD: yes
-            MYSQL_DATABASE: eventstore
-
+        mongodb:
+          image: "mongo:${{ matrix.mongodb-version }}"
           options: >-
-            --health-cmd "mariadb-admin ping --silent"
+            --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })' --quiet"
           ports:
-            - "3306:3306"
+            - "27017:27017"
 
       strategy:
         matrix:
@@ -91,12 +87,10 @@ jobs:
             - "8.5"
           operating-system:
             - "ubuntu-latest"
-          mariadb-version:
-            - "10.6"
-            - "10.11"
-            - "11.4"
-            - "11.8"
-            - "12.1"
+          mongodb-version:
+            - "6.0"
+            - "7.0"
+            - "8.0"
 
       env:
         MONGODB_URI: 'mongodb://localhost:27017'
@@ -111,7 +105,7 @@ jobs:
             coverage: "none"
             php-version: "${{ matrix.php-version }}"
             ini-values: memory_limit=-1
-            extensions: pdo_mysql
+            extensions: mongodb
 
         - uses: ramsey/composer-install@3.1.1
           with:
