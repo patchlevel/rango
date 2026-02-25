@@ -225,9 +225,11 @@ final class FilterBuilder
             if (isset($allOperators['$options'])) {
                 $options = (string)$allOperators['$options'];
                 foreach (['i', 'm', 's', 'x'] as $flag) {
-                    if (str_contains($options, $flag) && !str_contains($flags, $flag)) {
-                        $flags .= $flag;
+                    if (!str_contains($options, $flag) || str_contains($flags, $flag)) {
+                        continue;
                     }
+
+                    $flags .= $flag;
                 }
             }
 

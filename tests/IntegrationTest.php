@@ -7,6 +7,7 @@ namespace Patchlevel\Rango\Tests;
 use MongoDB\Client as MongoDbClient;
 use MongoDB\Collection as MongoDbCollection;
 use MongoDB\Database as MongoDbDatabase;
+use MongoDB\Exception\InvalidArgumentException;
 use Patchlevel\Rango\Client as RangoClient;
 use Patchlevel\Rango\Collection as RangoCollection;
 use Patchlevel\Rango\Database as RangoDatabase;
@@ -1066,7 +1067,7 @@ abstract class IntegrationTest extends TestCase
     {
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
 
-        $this->expectException($this->collection instanceof RangoCollection ? RuntimeException::class : \MongoDB\Exception\InvalidArgumentException::class);
+        $this->expectException($this->collection instanceof RangoCollection ? RuntimeException::class : InvalidArgumentException::class);
         $this->collection->updateOne(['_id' => '1'], []);
     }
 
@@ -1091,6 +1092,7 @@ abstract class IntegrationTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->collection->updateOne(['_id' => '1'], ['$bit' => ['v' => ['invalid' => 1]]]);
     }
+
     public function testElemMatchComplex(): void
     {
         $this->collection->insertMany([

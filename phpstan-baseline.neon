@@ -183,7 +183,7 @@ parameters:
 		-
 			message: '#^Cannot cast mixed to string\.$#'
 			identifier: cast.string
-			count: 5
+			count: 6
 			path: src/Query/FilterBuilder.php
 
 		-
@@ -200,12 +200,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\Query\\FilterBuilder\:\:buildWhere\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Query/FilterBuilder.php
-
-		-
-			message: '#^Parameter \#1 \$haystack of function str_contains expects string, mixed given\.$#'
 			identifier: argument.type
 			count: 1
 			path: src/Query/FilterBuilder.php
@@ -237,19 +231,13 @@ parameters:
 		-
 			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
 			identifier: foreach.nonIterable
-			count: 12
-			path: src/Query/UpdateBuilder.php
-
-		-
-			message: '#^Binary operation "\." between ''\{'' and mixed results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 11
+			count: 14
 			path: src/Query/UpdateBuilder.php
 
 		-
 			message: '#^Cannot cast mixed to float\.$#'
 			identifier: cast.double
-			count: 1
+			count: 2
 			path: src/Query/UpdateBuilder.php
 
 		-
@@ -259,15 +247,33 @@ parameters:
 			path: src/Query/UpdateBuilder.php
 
 		-
-			message: '#^Method Patchlevel\\Rango\\Query\\UpdateBuilder\:\:buildUpdateExpression\(\) should return array\{expression\: string, setData\: array\<string, mixed\>\|null\} but returns array\{expression\: non\-falsy\-string, setData\: array\<mixed, mixed\>\|null\}\.$#'
+			message: '#^Method Patchlevel\\Rango\\Query\\UpdateBuilder\:\:buildUpdateExpression\(\) should return array\{expression\: string, setData\: array\<string, mixed\>\|null, setOnInsertData\: array\<string, mixed\>\|null\} but returns array\{expression\: non\-falsy\-string, setData\: array\<mixed, mixed\>\|null, setOnInsertData\: array\<mixed, mixed\>\|null\}\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Query/UpdateBuilder.php
 
 		-
-			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, mixed given\.$#'
+			message: '#^Parameter \#1 \$field of method Patchlevel\\Rango\\Query\\UpdateBuilder\:\:baseExpression\(\) expects string, mixed given\.$#'
 			identifier: argument.type
 			count: 12
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$field of method Patchlevel\\Rango\\Query\\UpdateBuilder\:\:jsonbExtract\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 8
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$field of method Patchlevel\\Rango\\Query\\UpdateBuilder\:\:jsonbExtractText\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 3
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$field of method Patchlevel\\Rango\\Query\\UpdateBuilder\:\:pathLiteral\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 15
 			path: src/Query/UpdateBuilder.php
 
 		-
@@ -355,6 +361,12 @@ parameters:
 			path: tests/IntegrationTest.php
 
 		-
+			message: '#^Cannot access offset ''a'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
 			message: '#^Cannot access offset ''age'' on array\|object\|null\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 2
@@ -364,6 +376,18 @@ parameters:
 			message: '#^Cannot access offset ''avg'' on array\|object\|null\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''b'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''c'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
 			path: tests/IntegrationTest.php
 
 		-
@@ -381,7 +405,37 @@ parameters:
 		-
 			message: '#^Cannot access offset ''counter'' on array\|object\|null\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
+			count: 3
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''counter'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''created'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
 			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''d'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''e'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''f'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
 			path: tests/IntegrationTest.php
 
 		-
@@ -406,6 +460,12 @@ parameters:
 			message: '#^Cannot access offset ''last'' on array\|object\|null\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''level'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
 			path: tests/IntegrationTest.php
 
 		-
@@ -435,17 +495,23 @@ parameters:
 		-
 			message: '#^Cannot access offset ''name'' on array\|object\|null\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
-			count: 7
+			count: 9
 			path: tests/IntegrationTest.php
 
 		-
 			message: '#^Cannot access offset ''name'' on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
-			count: 4
+			count: 5
 			path: tests/IntegrationTest.php
 
 		-
 			message: '#^Cannot access offset ''nickname'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''points'' on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
 			path: tests/IntegrationTest.php
@@ -463,9 +529,27 @@ parameters:
 			path: tests/IntegrationTest.php
 
 		-
+			message: '#^Cannot access offset ''profile'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 5
+			path: tests/IntegrationTest.php
+
+		-
 			message: '#^Cannot access offset ''score'' on array\|object\|null\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''score'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''stats'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 4
 			path: tests/IntegrationTest.php
 
 		-
@@ -493,6 +577,12 @@ parameters:
 			path: tests/IntegrationTest.php
 
 		-
+			message: '#^Cannot access offset ''value'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
 			message: '#^Cannot access offset 0 on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 2
@@ -513,7 +603,13 @@ parameters:
 		-
 			message: '#^Parameter \#2 \$array of method PHPUnit\\Framework\\Assert\:\:assertArrayHasKey\(\) expects array\<mixed\>\|ArrayAccess\<\(int\|string\), mixed\>, array\|object\|null given\.$#'
 			identifier: argument.type
-			count: 5
+			count: 9
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Parameter \#2 \$array of method PHPUnit\\Framework\\Assert\:\:assertArrayHasKey\(\) expects array\<mixed\>\|ArrayAccess\<\(int\|string\), mixed\>, mixed given\.$#'
+			identifier: argument.type
+			count: 4
 			path: tests/IntegrationTest.php
 
 		-
@@ -525,7 +621,7 @@ parameters:
 		-
 			message: '#^Parameter \#2 \$array of method PHPUnit\\Framework\\Assert\:\:assertArrayNotHasKey\(\) expects array\<mixed\>\|ArrayAccess\<\(int\|string\), mixed\>, mixed given\.$#'
 			identifier: argument.type
-			count: 1
+			count: 5
 			path: tests/IntegrationTest.php
 
 		-

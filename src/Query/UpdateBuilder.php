@@ -8,6 +8,9 @@ use PDO;
 use RuntimeException;
 
 use function array_merge;
+use function array_pop;
+use function explode;
+use function implode;
 use function is_array;
 use function json_encode;
 use function sprintf;
@@ -84,6 +87,7 @@ final class UpdateBuilder
                 );
             }
         }
+
         if ($unsetData) {
             foreach ($unsetData as $field => $value) {
                 $updateParts[] = sprintf('%s #- %s', self::DATA_PLACEHOLDER, $this->pathLiteral($field));
