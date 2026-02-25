@@ -35,6 +35,7 @@ final class QueryBuilder
     ) {
     }
 
+    /** @param array<string, mixed> $document */
     public function createInsert(string $database, string $collection, array $document): string
     {
         $table = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($collection);
@@ -46,6 +47,10 @@ final class QueryBuilder
         );
     }
 
+    /**
+     * @param array<string, mixed> $filter
+     * @param array<string, mixed> $options
+     */
     public function createSelect(string $database, string $collection, array $filter = [], array $options = []): string
     {
         $table = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($collection);
@@ -147,6 +152,11 @@ final class QueryBuilder
         return $sql;
     }
 
+    /**
+     * @param array<string, mixed> $filter
+     * @param array<string, mixed> $update
+     * @param array<string, mixed> $options
+     */
     public function createUpdate(string $database, string $collection, array $filter, array $update, array $options = [], bool $multi = false): string
     {
         $table = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($collection);
@@ -350,6 +360,11 @@ final class QueryBuilder
         return $sql;
     }
 
+    /**
+     * @param array<string, mixed> $filter
+     * @param array<string, mixed> $replacement
+     * @param array<string, mixed> $options
+     */
     public function createReplace(string $database, string $collection, array $filter, array $replacement, array $options = []): string
     {
         $table = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($collection);
@@ -376,6 +391,7 @@ final class QueryBuilder
         return $sql;
     }
 
+    /** @param array<string, mixed> $filter */
     public function createDelete(string $database, string $collection, array $filter, bool $multi = false): string
     {
         $table = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($collection);
@@ -390,6 +406,7 @@ final class QueryBuilder
         return $sql;
     }
 
+    /** @param array<string, mixed> $filter */
     public function createCount(string $database, string $collection, array $filter = []): string
     {
         $table = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($collection);
@@ -404,6 +421,7 @@ final class QueryBuilder
         return $sql;
     }
 
+    /** @param array<string, mixed> $filter */
     public function createDistinct(string $database, string $collection, string $fieldName, array $filter = []): string
     {
         $table = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($collection);
@@ -419,6 +437,10 @@ final class QueryBuilder
         return $sql;
     }
 
+    /**
+     * @param list<array<string, mixed>> $pipeline
+     * @param array<string, mixed>       $options
+     */
     public function createAggregate(string $database, string $collection, array $pipeline, array $options = []): string
     {
         $table = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($collection);
@@ -591,6 +613,7 @@ final class QueryBuilder
         return $currentQuery;
     }
 
+    /** @param array<string, mixed> $filter */
     private function buildWhere(array $filter, string $conjunction = 'AND', string $column = 'data'): string
     {
         if (empty($filter)) {
@@ -600,6 +623,7 @@ final class QueryBuilder
         return $this->buildFilter($filter, $conjunction, $column);
     }
 
+    /** @param array<string, mixed> $filter */
     private function buildFilter(array $filter, string $conjunction = 'AND', string $column = 'data'): string
     {
         $parts = [];
@@ -634,6 +658,7 @@ final class QueryBuilder
         return implode(sprintf(' %s ', $conjunction), $parts);
     }
 
+    /** @param list<array<string, mixed>> $queries */
     private function buildLogicalOperator(array $queries, string $conjunction, string $column = 'data'): string
     {
         $parts = [];
@@ -677,6 +702,7 @@ final class QueryBuilder
         return sprintf('%s @> %s', $column, $this->pdo->quote(json_encode([$field => $value])));
     }
 
+    /** @param array<string, mixed> $array */
     private function isOperatorArray(array $array): bool
     {
         foreach (array_keys($array) as $key) {
@@ -688,6 +714,7 @@ final class QueryBuilder
         return false;
     }
 
+    /** @param array<string, mixed> $allOperators */
     private function buildOperatorFilter(string $field, string $operator, mixed $operand, array $allOperators = [], string $column = 'data'): string
     {
         $fieldExpression = $field === '_id' ? sprintf("%s->>'_id'", $column) : sprintf('%s->%s', $column, $this->pdo->quote($field));
@@ -851,6 +878,10 @@ final class QueryBuilder
         throw new RuntimeException(sprintf('Operator "%s" is not supported', $operator));
     }
 
+    /**
+     * @param array<string, int>   $key
+     * @param array<string, mixed> $options
+     */
     public function createCreateIndex(string $database, string $collection, array $key, array $options): string
     {
         $table = $this->quoteIdentifier($database) . '.' . $this->quoteIdentifier($collection);
@@ -917,6 +948,7 @@ final class QueryBuilder
         );
     }
 
+    /** @param list<string> $allInclusions */
     private function buildNestedProjectionForTopKey(string $topKey, array $allInclusions, string $column): string
     {
         $relevant = [];

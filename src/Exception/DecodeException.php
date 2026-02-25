@@ -9,6 +9,7 @@ use Throwable;
 
 use function sprintf;
 
+// phpcs:disable SlevomatCodingStandard.Classes.SuperfluousExceptionNaming.SuperfluousSuffix
 final class DecodeException extends RuntimeException implements Exception
 {
     public function __construct(string $data, string $error, int $code = 0, Throwable|null $previous = null)
@@ -20,3 +21,4 @@ final class DecodeException extends RuntimeException implements Exception
         );
     }
 }
+// phpcs:enable SlevomatCodingStandard.Classes.SuperfluousExceptionNaming.SuperfluousSuffix

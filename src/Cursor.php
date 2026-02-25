@@ -78,13 +78,13 @@ class Cursor implements IteratorAggregate, Countable
     /** @return array<string, mixed> */
     private function decode(string $json): array
     {
+        /** @var array<string, mixed>|false $decoded */
         $decoded = json_decode($json, true);
 
         if (!is_array($decoded)) {
             return [];
         }
 
-        /** @var array<string, mixed> $decoded */
         return $decoded;
     }
 }

@@ -9,6 +9,7 @@ use Throwable;
 
 use function sprintf;
 
+// phpcs:disable SlevomatCodingStandard.Classes.SuperfluousExceptionNaming.SuperfluousSuffix
 final class QueryException extends RuntimeException implements Exception
 {
     public function __construct(string $query, string $error, int $code = 0, Throwable|null $previous = null)
@@ -20,3 +21,4 @@ final class QueryException extends RuntimeException implements Exception
         );
     }
 }
+// phpcs:enable SlevomatCodingStandard.Classes.SuperfluousExceptionNaming.SuperfluousSuffix
