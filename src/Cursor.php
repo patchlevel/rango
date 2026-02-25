@@ -20,7 +20,10 @@ use function json_decode;
 
 use const JSON_THROW_ON_ERROR;
 
-/** @implements IteratorAggregate<int, array<string, mixed>> */
+/**
+ * @template TDocument of array<string, mixed>
+ * @implements IteratorAggregate<int, TDocument>
+ */
 class Cursor implements IteratorAggregate, Countable
 {
     /** @param list<string>|PDOStatement $data */
@@ -29,7 +32,7 @@ class Cursor implements IteratorAggregate, Countable
     ) {
     }
 
-    /** @return Traversable<int, array<string, mixed>> */
+    /** @return Traversable<int, TDocument> */
     public function getIterator(): Traversable
     {
         if ($this->data instanceof PDOStatement) {
@@ -59,7 +62,7 @@ class Cursor implements IteratorAggregate, Countable
         return count($this->data);
     }
 
-    /** @return array<int|string, array<string, mixed>> */
+    /** @return array<int|string, TDocument> */
     public function toArray(): array
     {
         if ($this->data instanceof PDOStatement) {

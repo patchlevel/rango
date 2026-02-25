@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
+/** @template TDocument of array<string, mixed> */
 final class Collection
 {
     public function __construct(
@@ -48,6 +49,8 @@ final class Collection
     /**
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
+     *
+     * @return Cursor<TDocument>
      */
     public function find(array $filter = [], array $options = []): Cursor
     {
@@ -58,7 +61,7 @@ final class Collection
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
      *
-     * @return array<string, mixed>|null
+     * @return TDocument|null
      */
     public function findOne(array $filter = [], array $options = []): array|null
     {
@@ -119,6 +122,8 @@ final class Collection
     /**
      * @param list<array<string, mixed>> $pipeline
      * @param array<string, mixed>       $options
+     *
+     * @return Cursor<TDocument>
      */
     public function aggregate(array $pipeline, array $options = []): Cursor
     {
@@ -140,7 +145,7 @@ final class Collection
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
      *
-     * @return array<string, mixed>|null
+     * @return TDocument|null
      */
     public function findOneAndDelete(array $filter, array $options = []): array|null
     {
@@ -159,7 +164,7 @@ final class Collection
      * @param array<string, mixed> $replacement
      * @param array<string, mixed> $options
      *
-     * @return array<string, mixed>|null
+     * @return TDocument|null
      */
     public function findOneAndReplace(array $filter, array $replacement, array $options = []): array|null
     {
@@ -178,7 +183,7 @@ final class Collection
      * @param array<string, mixed> $update
      * @param array<string, mixed> $options
      *
-     * @return array<string, mixed>|null
+     * @return TDocument|null
      */
     public function findOneAndUpdate(array $filter, array $update, array $options = []): array|null
     {

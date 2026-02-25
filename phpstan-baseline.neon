@@ -1,6 +1,30 @@
 parameters:
 	ignoreErrors:
 		-
+			message: '#^Method Patchlevel\\Rango\\Collection\:\:findOne\(\) should return \(TDocument of array\<string, mixed\>\)\|null but returns array\<string, mixed\>\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Collection.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Collection\:\:findOneAndDelete\(\) should return \(TDocument of array\<string, mixed\>\)\|null but returns array\<string, mixed\>\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Collection.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Collection\:\:findOneAndReplace\(\) should return \(TDocument of array\<string, mixed\>\)\|null but returns array\<string, mixed\>\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Collection.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Collection\:\:findOneAndUpdate\(\) should return \(TDocument of array\<string, mixed\>\)\|null but returns array\<string, mixed\>\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Collection.php
+
+		-
 			message: '#^Parameter \#1 \$operation of method Patchlevel\\Rango\\Client\:\:run\(\) expects Patchlevel\\Rango\\Operation\\Operation\<list\<mixed\>\>, Patchlevel\\Rango\\Operation\\Distinct given\.$#'
 			identifier: argument.type
 			count: 1
@@ -11,6 +35,60 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Cursor.php
+
+		-
+			message: '#^Generator expects value type TDocument of array\<string, mixed\>, array\<string, mixed\> given\.$#'
+			identifier: generator.valueType
+			count: 2
+			path: src/Cursor.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Cursor\:\:toArray\(\) should return array\<int\|string, TDocument of array\<string, mixed\>\> but returns array\<array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Cursor.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Cursor\:\:toArray\(\) should return array\<int\|string, TDocument of array\<string, mixed\>\> but returns list\<array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Cursor.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Operation\\Aggregate\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Operation/Aggregate.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Operation\\Find\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Operation/Find.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Operation\\FindOne\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Operation/FindOne.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Operation\\FindOneAndDelete\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Operation/FindOneAndDelete.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Operation\\FindOneAndReplace\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Operation/FindOneAndReplace.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Operation\\FindOneAndUpdate\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Operation/FindOneAndUpdate.php
 
 		-
 			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
@@ -253,7 +331,7 @@ parameters:
 			path: src/QueryBuilder.php
 
 		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertNotNull\(\) with MongoDB\\Collection\|Patchlevel\\Rango\\Collection will always evaluate to true\.$#'
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertNotNull\(\) with MongoDB\\Collection\|Patchlevel\\Rango\\Collection\<array\<string, mixed\>\> will always evaluate to true\.$#'
 			identifier: method.alreadyNarrowedType
 			count: 1
 			path: tests/IntegrationTest.php
@@ -427,6 +505,12 @@ parameters:
 			path: tests/IntegrationTest.php
 
 		-
+			message: '#^Method Patchlevel\\Rango\\Tests\\IntegrationTest\:\:getCollection\(\) return type with generic class Patchlevel\\Rango\\Collection does not specify its types\: TDocument$#'
+			identifier: missingType.generics
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
 			message: '#^Parameter \#2 \$array of method PHPUnit\\Framework\\Assert\:\:assertArrayHasKey\(\) expects array\<mixed\>\|ArrayAccess\<\(int\|string\), mixed\>, array\|object\|null given\.$#'
 			identifier: argument.type
 			count: 5
@@ -449,3 +533,15 @@ parameters:
 			identifier: argument.type
 			count: 2
 			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Property Patchlevel\\Rango\\Tests\\IntegrationTest\:\:\$collection with generic class Patchlevel\\Rango\\Collection does not specify its types\: TDocument$#'
+			identifier: missingType.generics
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Tests\\PostgresIntegrationTest\:\:getCollection\(\) return type with generic class Patchlevel\\Rango\\Collection does not specify its types\: TDocument$#'
+			identifier: missingType.generics
+			count: 1
+			path: tests/PostgresIntegrationTest.php
