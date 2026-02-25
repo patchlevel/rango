@@ -10,7 +10,10 @@ use PDO;
 
 final class Find implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param array<string, mixed> $filter
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,

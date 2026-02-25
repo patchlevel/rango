@@ -8,9 +8,14 @@ use Patchlevel\Rango\Cursor;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
+use function is_string;
+
 final class FindOne implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param array<string, mixed> $filter
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,
@@ -24,8 +29,12 @@ final class FindOne implements Operation
         $this->options['limit'] = 1;
         $sql = $queryBuilder->createSelect($this->database, $this->collection, $this->filter, $this->options);
         $statement = $pdo->query($sql);
+        if ($statement === false) {
+            return new Cursor([]);
+        }
+
         $data = $statement->fetchColumn();
 
-        return new Cursor($data ? [$data] : []);
+        return new Cursor(is_string($data) ? [$data] : []);
     }
 }

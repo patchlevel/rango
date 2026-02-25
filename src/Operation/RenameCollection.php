@@ -14,6 +14,7 @@ final class RenameCollection implements Operation
         private readonly string $databaseName,
         private readonly string $oldName,
         private readonly string $newName,
+        /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
     }

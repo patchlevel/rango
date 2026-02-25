@@ -13,11 +13,15 @@ use function random_bytes;
 
 final class InsertMany implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param list<array<string, mixed>> $documents
+     * @param array<string, mixed>       $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,
         private readonly array $documents,
+        /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
     }

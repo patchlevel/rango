@@ -10,7 +10,11 @@ use PDO;
 
 final class Update implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param array<string, mixed> $filter
+     * @param array<string, mixed> $update
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,
@@ -26,6 +30,7 @@ final class Update implements Operation
         $upsert = $this->options['upsert'] ?? false;
         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $this->filter, $this->update, $this->options, $this->multi);
         $rowCount = $pdo->exec($sql);
+        $rowCount = $rowCount === false ? 0 : $rowCount;
 
         if ($upsert && $rowCount === 1) {
             $matchedCount = 0;

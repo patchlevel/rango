@@ -13,11 +13,15 @@ use function random_bytes;
 
 final class InsertOne implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param array<string, mixed> $document
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,
         private array $document,
+        /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
     }

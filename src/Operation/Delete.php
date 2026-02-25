@@ -10,7 +10,7 @@ use PDO;
 
 final class Delete implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /** @param array<string, mixed> $filter */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,
@@ -24,6 +24,6 @@ final class Delete implements Operation
         $sql = $queryBuilder->createDelete($this->database, $this->collection, $this->filter, $this->multi);
         $rowCount = $pdo->exec($sql);
 
-        return new DeleteResult($rowCount);
+        return new DeleteResult($rowCount === false ? 0 : $rowCount);
     }
 }

@@ -10,7 +10,10 @@ use PDO;
 
 final class Aggregate implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param list<array<string, mixed>> $pipeline
+     * @param array<string, mixed>       $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,
@@ -19,6 +22,7 @@ final class Aggregate implements Operation
     ) {
     }
 
+    /** @return Cursor */
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor
     {
         $sql = $queryBuilder->createAggregate($this->database, $this->collection, $this->pipeline, $this->options);

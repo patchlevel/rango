@@ -14,6 +14,7 @@ final class DropIndex implements Operation
         public readonly string $database,
         public readonly string $collection,
         private readonly string $name,
+        /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
     }

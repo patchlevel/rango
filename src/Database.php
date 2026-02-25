@@ -12,11 +12,13 @@ final class Database
     ) {
     }
 
+    /** @return Collection */
     public function getCollection(string $collectionName): Collection
     {
         return new Collection($this->client, $this->databaseName, $collectionName);
     }
 
+    /** @return Collection */
     public function selectCollection(string $collectionName): Collection
     {
         return $this->getCollection($collectionName);
@@ -25,7 +27,10 @@ final class Database
     /** @return list<array{name: string}> */
     public function listCollections(): array
     {
-        return $this->client->listCollections($this->databaseName);
+        /** @var list<array{name: string}> $collections */
+        $collections = $this->client->listCollections($this->databaseName);
+
+        return $collections;
     }
 
     public function renameCollection(string $oldName, string $newName): void

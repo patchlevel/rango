@@ -13,9 +13,20 @@ use function getenv;
 
 final class MongoIntegrationTest extends IntegrationTest
 {
+    private function requireMongoUri(): string
+    {
+        $uri = getenv('MONGODB_URI');
+
+        if ($uri === false) {
+            throw new \RuntimeException('MONGODB_URI is not set');
+        }
+
+        return $uri;
+    }
+
     protected function getClient(): Client
     {
-        return new Client(getenv('MONGODB_URI'));
+        return new Client($this->requireMongoUri());
     }
 
     protected function setUp(): void

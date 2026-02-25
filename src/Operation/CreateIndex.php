@@ -9,7 +9,10 @@ use PDO;
 
 final class CreateIndex implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param array<string, int>   $key
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,

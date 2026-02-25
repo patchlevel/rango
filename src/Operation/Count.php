@@ -9,11 +9,15 @@ use PDO;
 
 final class Count implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param array<string, mixed> $filter
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,
         private readonly array $filter = [],
+        /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
     }
@@ -23,6 +27,10 @@ final class Count implements Operation
         $sql = $queryBuilder->createCount($this->database, $this->collection, $this->filter);
         $statement = $pdo->query($sql);
 
-        return (int)$statement->fetchColumn();
+        if ($statement === false) {
+            return 0;
+        }
+
+        return (int) $statement->fetchColumn();
     }
 }

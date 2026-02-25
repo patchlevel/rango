@@ -36,14 +36,22 @@ final class Client
         $this->pdo->exec(sprintf('DROP SCHEMA IF EXISTS %s CASCADE', $name));
     }
 
+    /** @return list<array{name: string}> */
     public function listDatabases(): array
     {
-        return $this->run(new Operation\ListDatabases());
+        /** @var list<array{name: string}> $databases */
+        $databases = $this->run(new Operation\ListDatabases());
+
+        return $databases;
     }
 
+    /** @return list<array{name: string}> */
     public function listCollections(string $database): array
     {
-        return $this->run(new Operation\ListCollections($database));
+        /** @var list<array{name: string}> $collections */
+        $collections = $this->run(new Operation\ListCollections($database));
+
+        return $collections;
     }
 
     public function renameCollection(string $database, string $oldName, string $newName): void

@@ -8,13 +8,19 @@ use Patchlevel\Rango\Cursor;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
+use function is_string;
+
 final class FindOneAndDelete implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param array<string, mixed> $filter
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,
         private readonly array $filter,
+        /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
     }
@@ -23,9 +29,13 @@ final class FindOneAndDelete implements Operation
     {
         $sql = $queryBuilder->createSelect($this->database, $this->collection, $this->filter, ['limit' => 1]);
         $statement = $pdo->query($sql);
+        if ($statement === false) {
+            return null;
+        }
+
         $data = $statement->fetchColumn();
 
-        if (!$data) {
+        if (!is_string($data)) {
             return null;
         }
 

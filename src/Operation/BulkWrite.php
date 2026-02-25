@@ -14,11 +14,15 @@ use function random_bytes;
 
 final class BulkWrite implements Operation
 {
-    /** @param array<string, mixed> $options */
+    /**
+     * @param list<array<string, list<array<string, mixed>>>> $operations
+     * @param array<string, mixed>                             $options
+     */
     public function __construct(
         public readonly string $database,
         public readonly string $collection,
         private readonly array $operations,
+        /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
     }
@@ -38,6 +42,10 @@ final class BulkWrite implements Operation
         try {
             foreach ($this->operations as $operation) {
                 foreach ($operation as $type => $args) {
+                    if (!isset($args[0])) {
+                        continue;
+                    }
+
                     if ($type === 'insertOne') {
                         $document = $args[0];
                         if (!isset($document['_id'])) {
@@ -48,17 +56,17 @@ final class BulkWrite implements Operation
                         $pdo->exec($sql);
                         $insertedCount++;
                         $insertedIds[] = $document['_id'];
-                    } elseif ($type === 'updateOne') {
+                    } elseif ($type === 'updateOne' && isset($args[1])) {
                         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $args[0], $args[1], $args[2] ?? [], false);
                         $rowCount = $pdo->exec($sql);
                         $matchedCount += $rowCount;
                         $modifiedCount += $rowCount;
-                    } elseif ($type === 'updateMany') {
+                    } elseif ($type === 'updateMany' && isset($args[1])) {
                         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $args[0], $args[1], $args[2] ?? [], true);
                         $rowCount = $pdo->exec($sql);
                         $matchedCount += $rowCount;
                         $modifiedCount += $rowCount;
-                    } elseif ($type === 'replaceOne') {
+                    } elseif ($type === 'replaceOne' && isset($args[1])) {
                         $sql = $queryBuilder->createReplace($this->database, $this->collection, $args[0], $args[1], $args[2] ?? []);
                         $rowCount = $pdo->exec($sql);
                         $matchedCount += $rowCount;
