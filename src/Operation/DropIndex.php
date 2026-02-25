@@ -7,6 +7,7 @@ namespace Patchlevel\Rango\Operation;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
+/** @implements Operation<bool> */
 final class DropIndex implements Operation
 {
     /** @param array<string, mixed> $options */

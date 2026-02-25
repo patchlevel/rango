@@ -9,6 +9,7 @@ use PDO;
 
 use function sprintf;
 
+/** @implements Operation<bool> */
 final class DropCollection implements Operation
 {
     public function __construct(

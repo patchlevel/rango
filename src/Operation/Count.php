@@ -7,6 +7,7 @@ namespace Patchlevel\Rango\Operation;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
+/** @implements Operation<int> */
 final class Count implements Operation
 {
     /**

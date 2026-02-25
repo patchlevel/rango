@@ -8,6 +8,7 @@ use Patchlevel\Rango\DeleteResult;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
+/** @implements Operation<DeleteResult> */
 final class Delete implements Operation
 {
     /** @param array<string, mixed> $filter */

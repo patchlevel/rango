@@ -59,6 +59,11 @@ final class Client
         $this->run(new Operation\RenameCollection($database, $oldName, $newName));
     }
 
+    /**
+     * @template TReturn
+     * @param Operation\Operation<TReturn> $operation
+     * @return TReturn
+     */
     public function run(Operation\Operation $operation): mixed
     {
         if (

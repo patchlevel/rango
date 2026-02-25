@@ -10,6 +10,7 @@ use PDO;
 
 use function is_string;
 
+/** @implements Operation<Cursor|null> */
 final class FindOneAndDelete implements Operation
 {
     /**

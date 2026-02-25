@@ -8,6 +8,7 @@ use Patchlevel\Rango\QueryBuilder;
 use Patchlevel\Rango\UpdateResult;
 use PDO;
 
+/** @implements Operation<UpdateResult> */
 final class ReplaceOne implements Operation
 {
     /**

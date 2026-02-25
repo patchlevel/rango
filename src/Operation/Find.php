@@ -8,6 +8,7 @@ use Patchlevel\Rango\Cursor;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
+/** @implements Operation<Cursor> */
 final class Find implements Operation
 {
     /**

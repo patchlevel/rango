@@ -12,6 +12,7 @@ use function array_values;
 use function is_string;
 use function json_decode;
 
+/** @implements Operation<list<mixed>> */
 final class Distinct implements Operation
 {
     /**

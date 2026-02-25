@@ -7,6 +7,7 @@ namespace Patchlevel\Rango\Operation;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
+/** @implements Operation<list<array{name: string}>> */
 final class ListIndexes implements Operation
 {
     /** @param array<string, mixed> $options */

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
-use function assert;
-use function is_int;
 
 final class Collection
 {
@@ -22,10 +20,7 @@ final class Collection
      */
     public function countDocuments(array $filter = [], array $options = []): int
     {
-        $count = $this->client->run(new Operation\Count($this->databaseName, $this->collectionName, $filter, $options));
-        assert(is_int($count));
-
-        return $count;
+        return $this->client->run(new Operation\Count($this->databaseName, $this->collectionName, $filter, $options));
     }
 
     /**
@@ -34,10 +29,7 @@ final class Collection
      */
     public function deleteMany(array $filter, array $options = []): DeleteResult
     {
-        $result = $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, true));
-        assert($result instanceof DeleteResult);
-
-        return $result;
+        return $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, true));
     }
 
     /**
@@ -46,10 +38,7 @@ final class Collection
      */
     public function deleteOne(array $filter, array $options = []): DeleteResult
     {
-        $result = $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, false));
-        assert($result instanceof DeleteResult);
-
-        return $result;
+        return $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, false));
     }
 
     public function drop(): void
@@ -63,10 +52,7 @@ final class Collection
      */
     public function find(array $filter = [], array $options = []): Cursor
     {
-        $cursor = $this->client->run(new Operation\Find($this->databaseName, $this->collectionName, $filter, $options));
-        assert($cursor instanceof Cursor);
-
-        return $cursor;
+        return $this->client->run(new Operation\Find($this->databaseName, $this->collectionName, $filter, $options));
     }
 
     /**
@@ -77,14 +63,8 @@ final class Collection
      */
     public function findOne(array $filter = [], array $options = []): array|null
     {
-        $result = $this->client->run(new Operation\FindOne($this->databaseName, $this->collectionName, $filter, $options));
-        assert($result instanceof Cursor || $result === null);
-
-        if (!$result instanceof Cursor) {
-            return null;
-        }
-
-        $data = $result->toArray();
+        $cursor = $this->client->run(new Operation\FindOne($this->databaseName, $this->collectionName, $filter, $options));
+        $data = $cursor->toArray();
 
         return $data[0] ?? null;
     }
@@ -95,10 +75,7 @@ final class Collection
      */
     public function insertMany(array $documents, array $options = []): InsertManyResult
     {
-        $result = $this->client->run(new Operation\InsertMany($this->databaseName, $this->collectionName, $documents, $options));
-        assert($result instanceof InsertManyResult);
-
-        return $result;
+        return $this->client->run(new Operation\InsertMany($this->databaseName, $this->collectionName, $documents, $options));
     }
 
     /**
@@ -107,10 +84,7 @@ final class Collection
      */
     public function insertOne(array $document, array $options = []): InsertOneResult
     {
-        $result = $this->client->run(new Operation\InsertOne($this->databaseName, $this->collectionName, $document, $options));
-        assert($result instanceof InsertOneResult);
-
-        return $result;
+        return $this->client->run(new Operation\InsertOne($this->databaseName, $this->collectionName, $document, $options));
     }
 
     /**
@@ -120,10 +94,7 @@ final class Collection
      */
     public function replaceOne(array $filter, array $replacement, array $options = []): UpdateResult
     {
-        $result = $this->client->run(new Operation\ReplaceOne($this->databaseName, $this->collectionName, $filter, $replacement, $options));
-        assert($result instanceof UpdateResult);
-
-        return $result;
+        return $this->client->run(new Operation\ReplaceOne($this->databaseName, $this->collectionName, $filter, $replacement, $options));
     }
 
     /**
@@ -133,10 +104,7 @@ final class Collection
      */
     public function updateMany(array $filter, array $update, array $options = []): UpdateResult
     {
-        $result = $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, true));
-        assert($result instanceof UpdateResult);
-
-        return $result;
+        return $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, true));
     }
 
     /**
@@ -146,10 +114,7 @@ final class Collection
      */
     public function updateOne(array $filter, array $update, array $options = []): UpdateResult
     {
-        $result = $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, false));
-        assert($result instanceof UpdateResult);
-
-        return $result;
+        return $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, false));
     }
 
     /**
@@ -158,10 +123,7 @@ final class Collection
      */
     public function aggregate(array $pipeline, array $options = []): Cursor
     {
-        $cursor = $this->client->run(new Operation\Aggregate($this->databaseName, $this->collectionName, $pipeline, $options));
-        assert($cursor instanceof Cursor);
-
-        return $cursor;
+        return $this->client->run(new Operation\Aggregate($this->databaseName, $this->collectionName, $pipeline, $options));
     }
 
     /**
@@ -172,10 +134,7 @@ final class Collection
      */
     public function distinct(string $fieldName, array $filter = [], array $options = []): array
     {
-        /** @var list<mixed> $result */
-        $result = $this->client->run(new Operation\Distinct($this->databaseName, $this->collectionName, $fieldName, $filter, $options));
-
-        return $result;
+        return $this->client->run(new Operation\Distinct($this->databaseName, $this->collectionName, $fieldName, $filter, $options));
     }
 
     /**
@@ -186,14 +145,12 @@ final class Collection
      */
     public function findOneAndDelete(array $filter, array $options = []): array|null
     {
-        $result = $this->client->run(new Operation\FindOneAndDelete($this->databaseName, $this->collectionName, $filter, $options));
-        assert($result instanceof Cursor || $result === null);
-
-        if (!$result instanceof Cursor) {
+        $cursor = $this->client->run(new Operation\FindOneAndDelete($this->databaseName, $this->collectionName, $filter, $options));
+        if (!$cursor instanceof Cursor) {
             return null;
         }
 
-        $data = $result->toArray();
+        $data = $cursor->toArray();
 
         return $data[0] ?? null;
     }
@@ -207,14 +164,12 @@ final class Collection
      */
     public function findOneAndReplace(array $filter, array $replacement, array $options = []): array|null
     {
-        $result = $this->client->run(new Operation\FindOneAndReplace($this->databaseName, $this->collectionName, $filter, $replacement, $options));
-        assert($result instanceof Cursor || $result === null);
-
-        if (!$result instanceof Cursor) {
+        $cursor = $this->client->run(new Operation\FindOneAndReplace($this->databaseName, $this->collectionName, $filter, $replacement, $options));
+        if (!$cursor instanceof Cursor) {
             return null;
         }
 
-        $data = $result->toArray();
+        $data = $cursor->toArray();
 
         return $data[0] ?? null;
     }
@@ -228,14 +183,12 @@ final class Collection
      */
     public function findOneAndUpdate(array $filter, array $update, array $options = []): array|null
     {
-        $result = $this->client->run(new Operation\FindOneAndUpdate($this->databaseName, $this->collectionName, $filter, $update, $options));
-        assert($result instanceof Cursor || $result === null);
-
-        if (!$result instanceof Cursor) {
+        $cursor = $this->client->run(new Operation\FindOneAndUpdate($this->databaseName, $this->collectionName, $filter, $update, $options));
+        if (!$cursor instanceof Cursor) {
             return null;
         }
 
-        $data = $result->toArray();
+        $data = $cursor->toArray();
 
         return $data[0] ?? null;
     }
@@ -246,10 +199,7 @@ final class Collection
      */
     public function bulkWrite(array $operations, array $options = []): BulkWriteResult
     {
-        $result = $this->client->run(new Operation\BulkWrite($this->databaseName, $this->collectionName, $operations, $options));
-        assert($result instanceof BulkWriteResult);
-
-        return $result;
+        return $this->client->run(new Operation\BulkWrite($this->databaseName, $this->collectionName, $operations, $options));
     }
 
     /**
@@ -269,9 +219,6 @@ final class Collection
     /** @return list<array{name: string}> */
     public function listIndexes(): array
     {
-        /** @var list<array{name: string}> $indexes */
-        $indexes = $this->client->run(new Operation\ListIndexes($this->databaseName, $this->collectionName));
-
-        return $indexes;
+        return $this->client->run(new Operation\ListIndexes($this->databaseName, $this->collectionName));
     }
 }

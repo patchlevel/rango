@@ -10,6 +10,7 @@ use PDO;
 
 use function is_string;
 
+/** @implements Operation<Cursor> */
 final class FindOne implements Operation
 {
     /**

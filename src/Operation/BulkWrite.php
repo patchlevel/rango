@@ -12,6 +12,7 @@ use Throwable;
 use function bin2hex;
 use function random_bytes;
 
+/** @implements Operation<BulkWriteResult> */
 final class BulkWrite implements Operation
 {
     /**

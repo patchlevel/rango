@@ -11,6 +11,7 @@ use PDO;
 use function bin2hex;
 use function random_bytes;
 
+/** @implements Operation<InsertManyResult> */
 final class InsertMany implements Operation
 {
     /**
