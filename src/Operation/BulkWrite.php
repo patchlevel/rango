@@ -6,6 +6,7 @@ namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\BulkWriteResult;
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 use Throwable;
 
@@ -55,31 +56,31 @@ final class BulkWrite extends CollectionOperation
                         }
 
                         $sql = $queryBuilder->createInsert($this->database, $this->collection, $document);
-                        $pdo->exec($sql);
+                        SqlRunner::exec($pdo, $sql);
                         $insertedCount++;
                         $insertedIds[] = $document['_id'];
                     } elseif ($type === 'updateOne' && isset($args[1])) {
                         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $args[0], $args[1], $args[2] ?? [], false);
-                        $rowCount = $pdo->exec($sql);
+                        $rowCount = SqlRunner::exec($pdo, $sql);
                         $matchedCount += $rowCount;
                         $modifiedCount += $rowCount;
                     } elseif ($type === 'updateMany' && isset($args[1])) {
                         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $args[0], $args[1], $args[2] ?? [], true);
-                        $rowCount = $pdo->exec($sql);
+                        $rowCount = SqlRunner::exec($pdo, $sql);
                         $matchedCount += $rowCount;
                         $modifiedCount += $rowCount;
                     } elseif ($type === 'replaceOne' && isset($args[1])) {
                         $sql = $queryBuilder->createReplace($this->database, $this->collection, $args[0], $args[1], $args[2] ?? []);
-                        $rowCount = $pdo->exec($sql);
+                        $rowCount = SqlRunner::exec($pdo, $sql);
                         $matchedCount += $rowCount;
                         $modifiedCount += $rowCount;
                     } elseif ($type === 'deleteOne') {
                         $sql = $queryBuilder->createDelete($this->database, $this->collection, $args[0], false);
-                        $rowCount = $pdo->exec($sql);
+                        $rowCount = SqlRunner::exec($pdo, $sql);
                         $deletedCount += $rowCount;
                     } elseif ($type === 'deleteMany') {
                         $sql = $queryBuilder->createDelete($this->database, $this->collection, $args[0], true);
-                        $rowCount = $pdo->exec($sql);
+                        $rowCount = SqlRunner::exec($pdo, $sql);
                         $deletedCount += $rowCount;
                     }
                 }

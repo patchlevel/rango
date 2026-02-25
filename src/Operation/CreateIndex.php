@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 /** @extends CollectionOperation<bool> */
@@ -26,7 +27,7 @@ final class CreateIndex extends CollectionOperation
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): bool
     {
         $sql = $queryBuilder->createCreateIndex($this->database, $this->collection, $this->key, $this->options);
-        $pdo->exec($sql);
+        SqlRunner::exec($pdo, $sql);
 
         return true;
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 /** @implements Operation<list<array{name: string}>> */
@@ -23,11 +24,7 @@ final class ListIndexes implements Operation
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): array
     {
         $sql = $queryBuilder->createListIndexes($this->database, $this->collection);
-        $statement = $pdo->query($sql);
-
-        if ($statement === false) {
-            return [];
-        }
+        $statement = SqlRunner::query($pdo, $sql);
 
         /** @var list<array{name: string}> $rows */
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);

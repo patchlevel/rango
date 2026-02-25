@@ -6,6 +6,7 @@ namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\InsertOneResult;
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 use function bin2hex;
@@ -35,7 +36,7 @@ final class InsertOne extends CollectionOperation
         }
 
         $sql = $queryBuilder->createInsert($this->database, $this->collection, $this->document);
-        $pdo->exec($sql);
+        SqlRunner::exec($pdo, $sql);
 
         return new InsertOneResult($this->document['_id']);
     }

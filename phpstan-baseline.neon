@@ -7,158 +7,248 @@ parameters:
 			path: src/Collection.php
 
 		-
-			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
-			identifier: foreach.nonIterable
-			count: 18
-			path: src/QueryBuilder.php
+			message: '#^Call to function is_array\(\) with array\<string, mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Cursor.php
 
 		-
-			message: '#^Binary operation "\." between ''\{'' and mixed results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 11
-			path: src/QueryBuilder.php
+			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 3
+			path: src/Query/AggregationBuilder.php
 
 		-
 			message: '#^Cannot access offset ''_id'' on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
-			count: 3
-			path: src/QueryBuilder.php
+			count: 1
+			path: src/Query/AggregationBuilder.php
 
 		-
 			message: '#^Cannot access offset ''as'' on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
-			path: src/QueryBuilder.php
+			path: src/Query/AggregationBuilder.php
 
 		-
 			message: '#^Cannot access offset ''foreignField'' on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
-			path: src/QueryBuilder.php
+			path: src/Query/AggregationBuilder.php
 
 		-
 			message: '#^Cannot access offset ''from'' on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
-			path: src/QueryBuilder.php
+			path: src/Query/AggregationBuilder.php
 
 		-
 			message: '#^Cannot access offset ''localField'' on mixed\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
-			path: src/QueryBuilder.php
+			path: src/Query/AggregationBuilder.php
+
+		-
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 2
+			path: src/Query/AggregationBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\Query\\FilterBuilder\:\:buildWhere\(\) expects array\<string, mixed\>, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/AggregationBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$identifier of static method Patchlevel\\Rango\\Sql\\Identifier\:\:quote\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/AggregationBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$projection of method Patchlevel\\Rango\\Query\\ProjectionBuilder\:\:buildProjectionColumn\(\) expects array\<string, mixed\>, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/AggregationBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$string of function ltrim expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 8
+			path: src/Query/AggregationBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 8
+			path: src/Query/AggregationBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/AggregationBuilder.php
+
+		-
+			message: '#^Parameter \#2 \$string of function explode expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Query/AggregationBuilder.php
+
+		-
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 3
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 5
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$array of method Patchlevel\\Rango\\Query\\FilterBuilder\:\:isOperatorArray\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\Query\\FilterBuilder\:\:buildFilter\(\) expects array\<string, mixed\>, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\Query\\FilterBuilder\:\:buildWhere\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$haystack of function str_contains expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$queries of method Patchlevel\\Rango\\Query\\FilterBuilder\:\:buildLogicalOperator\(\) expects list\<array\<string, mixed\>\>, mixed given\.$#'
+			identifier: argument.type
+			count: 3
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 11
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Parameter \#4 \$allOperators of method Patchlevel\\Rango\\Query\\FilterBuilder\:\:buildOperatorFilter\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Possibly invalid array key type mixed\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: src/Query/FilterBuilder.php
+
+		-
+			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 12
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Binary operation "\." between ''\{'' and mixed results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 11
+			path: src/Query/UpdateBuilder.php
 
 		-
 			message: '#^Cannot cast mixed to float\.$#'
 			identifier: cast.double
+			count: 1
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 1
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Query\\UpdateBuilder\:\:buildUpdateExpression\(\) should return array\{expression\: string, setData\: array\<string, mixed\>\|null\} but returns array\{expression\: non\-falsy\-string, setData\: array\<mixed, mixed\>\|null\}\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 12
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 6
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Parameter \#2 \.\.\.\$values of function sprintf expects bool\|float\|int\|string\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Query/UpdateBuilder.php
+
+		-
+			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
 			count: 1
 			path: src/QueryBuilder.php
 
 		-
 			message: '#^Cannot cast mixed to int\.$#'
 			identifier: cast.int
-			count: 8
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Cannot cast mixed to string\.$#'
-			identifier: cast.string
-			count: 5
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Parameter \#1 \$array of method Patchlevel\\Rango\\QueryBuilder\:\:isOperatorArray\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\QueryBuilder\:\:buildFilter\(\) expects array\<string, mixed\>, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\QueryBuilder\:\:buildWhere\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\QueryBuilder\:\:buildWhere\(\) expects array\<string, mixed\>, mixed given\.$#'
-			identifier: argument.type
-			count: 1
+			count: 2
 			path: src/QueryBuilder.php
 
 		-
 			message: '#^Parameter \#1 \$haystack of function str_contains expects string, mixed given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 1
 			path: src/QueryBuilder.php
 
 		-
-			message: '#^Parameter \#1 \$identifier of method Patchlevel\\Rango\\QueryBuilder\:\:quoteIdentifier\(\) expects string, mixed given\.$#'
+			message: '#^Parameter \#1 \$identifier of static method Patchlevel\\Rango\\Sql\\Identifier\:\:quote\(\) expects string, mixed given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 1
 			path: src/QueryBuilder.php
 
 		-
-			message: '#^Parameter \#1 \$queries of method Patchlevel\\Rango\\QueryBuilder\:\:buildLogicalOperator\(\) expects list\<array\<string, mixed\>\>, mixed given\.$#'
+			message: '#^Parameter \#1 \$projection of method Patchlevel\\Rango\\Query\\ProjectionBuilder\:\:buildProjectionColumn\(\) expects array\<string, mixed\>, mixed given\.$#'
 			identifier: argument.type
-			count: 3
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Parameter \#1 \$string of function ltrim expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 8
+			count: 1
 			path: src/QueryBuilder.php
 
 		-
 			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, mixed given\.$#'
 			identifier: argument.type
-			count: 25
+			count: 1
 			path: src/QueryBuilder.php
 
 		-
 			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, string\|false given\.$#'
 			identifier: argument.type
-			count: 22
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Parameter \#2 \$allInclusions of method Patchlevel\\Rango\\QueryBuilder\:\:buildNestedProjectionForTopKey\(\) expects list\<string\>, non\-empty\-list\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
+			count: 4
 			path: src/QueryBuilder.php
 
 		-
 			message: '#^Parameter \#2 \$string of function explode expects string, mixed given\.$#'
 			identifier: argument.type
-			count: 4
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Parameter \#2 \.\.\.\$arrays of function array_merge expects array, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Parameter \#2 \.\.\.\$values of function sprintf expects bool\|float\|int\|string\|null, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Parameter \#4 \$allOperators of method Patchlevel\\Rango\\QueryBuilder\:\:buildOperatorFilter\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/QueryBuilder.php
-
-		-
-			message: '#^Possibly invalid array key type mixed\.$#'
-			identifier: offsetAccess.invalidOffset
 			count: 1
 			path: src/QueryBuilder.php
 

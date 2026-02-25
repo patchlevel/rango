@@ -6,6 +6,8 @@ namespace Patchlevel\Rango;
 
 use Countable;
 use IteratorAggregate;
+use JsonException;
+use Patchlevel\Rango\Exception\DecodeException;
 use PDO;
 use PDOStatement;
 use Traversable;
@@ -15,6 +17,8 @@ use function count;
 use function is_array;
 use function is_string;
 use function json_decode;
+
+use const JSON_THROW_ON_ERROR;
 
 /** @implements IteratorAggregate<int, array<string, mixed>> */
 class Cursor implements IteratorAggregate, Countable
@@ -78,13 +82,13 @@ class Cursor implements IteratorAggregate, Countable
     /** @return array<string, mixed> */
     private function decode(string $json): array
     {
-        /** @var array<string, mixed>|false $decoded */
-        $decoded = json_decode($json, true);
-
-        if (!is_array($decoded)) {
-            return [];
+        try {
+            /** @var array<string, mixed> $decoded */
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw new DecodeException($json, $e->getMessage(), (int)$e->getCode(), $e);
         }
 
-        return $decoded;
+        return is_array($decoded) ? $decoded : [];
     }
 }

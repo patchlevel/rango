@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 /** @extends CollectionOperation<int> */
@@ -27,11 +28,7 @@ final class Count extends CollectionOperation
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): int
     {
         $sql = $queryBuilder->createCount($this->database, $this->collection, $this->filter);
-        $statement = $pdo->query($sql);
-
-        if ($statement === false) {
-            return 0;
-        }
+        $statement = SqlRunner::query($pdo, $sql);
 
         return (int)$statement->fetchColumn();
     }

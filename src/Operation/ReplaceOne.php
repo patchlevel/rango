@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use Patchlevel\Rango\UpdateResult;
 use PDO;
 
@@ -30,8 +31,7 @@ final class ReplaceOne extends CollectionOperation
     {
         $upsert = $this->options['upsert'] ?? false;
         $sql = $queryBuilder->createReplace($this->database, $this->collection, $this->filter, $this->replacement, $this->options);
-        $rowCount = $pdo->exec($sql);
-        $rowCount = $rowCount === false ? 0 : $rowCount;
+        $rowCount = SqlRunner::exec($pdo, $sql);
 
         if ($upsert && $rowCount === 1) {
             $matchedCount = 0;

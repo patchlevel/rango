@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango\Operation;
 
+use JsonException;
+use Patchlevel\Rango\Exception\DecodeException;
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 use function array_map;
 use function array_values;
 use function is_string;
 use function json_decode;
+
+use const JSON_THROW_ON_ERROR;
 
 /** @extends CollectionOperation<list<mixed>> */
 final class Distinct extends CollectionOperation
@@ -34,14 +39,22 @@ final class Distinct extends CollectionOperation
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): array
     {
         $sql = $queryBuilder->createDistinct($this->database, $this->collection, $this->fieldName, $this->filter);
-        $statement = $pdo->query($sql);
-
-        if ($statement === false) {
-            return [];
-        }
+        $statement = SqlRunner::query($pdo, $sql);
 
         $data = array_map(
-            static fn ($item) => json_decode(is_string($item) ? $item : '', true),
+            static function ($item): mixed {
+                if ($item === null) {
+                    return null;
+                }
+
+                $payload = is_string($item) ? $item : '';
+
+                try {
+                    return json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
+                } catch (JsonException $e) {
+                    throw new DecodeException($payload, $e->getMessage(), (int)$e->getCode(), $e);
+                }
+            },
             $statement->fetchAll(PDO::FETCH_COLUMN),
         );
 

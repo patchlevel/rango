@@ -6,6 +6,7 @@ namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\Cursor;
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 use function is_string;
@@ -30,10 +31,7 @@ final class FindOneAndDelete extends CollectionOperation
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor|null
     {
         $sql = $queryBuilder->createSelect($this->database, $this->collection, $this->filter, ['limit' => 1]);
-        $statement = $pdo->query($sql);
-        if ($statement === false) {
-            return null;
-        }
+        $statement = SqlRunner::query($pdo, $sql);
 
         $data = $statement->fetchColumn();
 
@@ -42,7 +40,7 @@ final class FindOneAndDelete extends CollectionOperation
         }
 
         $sql = $queryBuilder->createDelete($this->database, $this->collection, $this->filter, false);
-        $pdo->exec($sql);
+        SqlRunner::exec($pdo, $sql);
 
         return new Cursor([$data]);
     }

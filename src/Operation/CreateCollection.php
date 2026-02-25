@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\Sql\Identifier;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 use function sprintf;
@@ -20,13 +22,14 @@ final class CreateCollection implements Operation
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): bool
     {
-        $pdo->exec(sprintf('CREATE TABLE IF NOT EXISTS %s.%s (data JSONB NOT NULL)', $this->database, $this->collection));
-        $pdo->exec(sprintf(
-            'CREATE UNIQUE INDEX IF NOT EXISTS %s_%s_id_idx ON %s.%s ((data->>\'_id\'))',
-            $this->database,
-            $this->collection,
-            $this->database,
-            $this->collection,
+        $schema = Identifier::quote($this->database);
+        $table = Identifier::quote($this->collection);
+        SqlRunner::exec($pdo, sprintf('CREATE TABLE IF NOT EXISTS %s.%s (data JSONB NOT NULL)', $schema, $table));
+        SqlRunner::exec($pdo, sprintf(
+            "CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s ((data->>'_id'))",
+            Identifier::quote($this->database . '_' . $this->collection . '_id_idx'),
+            $schema,
+            $table,
         ));
 
         return true;

@@ -6,6 +6,7 @@ namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\Cursor;
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 /** @extends CollectionOperation<Cursor> */
@@ -27,11 +28,7 @@ final class Find extends CollectionOperation
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor
     {
         $sql = $queryBuilder->createSelect($this->database, $this->collection, $this->filter, $this->options);
-        $statement = $pdo->query($sql);
-
-        if ($statement === false) {
-            return new Cursor([]);
-        }
+        $statement = SqlRunner::query($pdo, $sql);
 
         return new Cursor($statement);
     }

@@ -6,6 +6,7 @@ namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\Cursor;
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 use function is_string;
@@ -30,10 +31,7 @@ final class FindOne extends CollectionOperation
     {
         $this->options['limit'] = 1;
         $sql = $queryBuilder->createSelect($this->database, $this->collection, $this->filter, $this->options);
-        $statement = $pdo->query($sql);
-        if ($statement === false) {
-            return new Cursor([]);
-        }
+        $statement = SqlRunner::query($pdo, $sql);
 
         $data = $statement->fetchColumn();
 

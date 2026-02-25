@@ -6,6 +6,7 @@ namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\DeleteResult;
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 /** @extends CollectionOperation<DeleteResult> */
@@ -24,8 +25,8 @@ final class Delete extends CollectionOperation
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): DeleteResult
     {
         $sql = $queryBuilder->createDelete($this->database, $this->collection, $this->filter, $this->multi);
-        $rowCount = $pdo->exec($sql);
+        $rowCount = SqlRunner::exec($pdo, $sql);
 
-        return new DeleteResult($rowCount === false ? 0 : $rowCount);
+        return new DeleteResult($rowCount);
     }
 }

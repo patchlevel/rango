@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
+use Patchlevel\Rango\Sql\Identifier;
 use PDO;
 
 use function sprintf;
@@ -15,13 +16,15 @@ final class Client
 
     public function __construct(string $uri)
     {
-        $this->pdo = new PDO($uri);
+        $this->pdo = new PDO($uri, null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        ]);
         $this->queryBuilder = new QueryBuilder($this->pdo);
     }
 
     public function getDatabase(string $name): Database
     {
-        $this->pdo->exec(sprintf('CREATE SCHEMA IF NOT EXISTS %s', $name));
+        SqlRunner::exec($this->pdo, sprintf('CREATE SCHEMA IF NOT EXISTS %s', Identifier::quote($name)));
 
         return new Database($this, $name);
     }
@@ -33,7 +36,7 @@ final class Client
 
     public function dropDatabase(string $name): void
     {
-        $this->pdo->exec(sprintf('DROP SCHEMA IF EXISTS %s CASCADE', $name));
+        SqlRunner::exec($this->pdo, sprintf('DROP SCHEMA IF EXISTS %s CASCADE', Identifier::quote($name)));
     }
 
     /** @return list<array{name: string}> */

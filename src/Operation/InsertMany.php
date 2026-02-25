@@ -6,6 +6,7 @@ namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\InsertManyResult;
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use PDO;
 
 use function bin2hex;
@@ -37,7 +38,7 @@ final class InsertMany extends CollectionOperation
             }
 
             $sql = $queryBuilder->createInsert($this->database, $this->collection, $document);
-            $pdo->exec($sql);
+            SqlRunner::exec($pdo, $sql);
             $insertedIds[] = $document['_id'];
         }
 

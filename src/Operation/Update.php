@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango\Operation;
 
 use Patchlevel\Rango\QueryBuilder;
+use Patchlevel\Rango\SqlRunner;
 use Patchlevel\Rango\UpdateResult;
 use PDO;
 
@@ -31,8 +32,7 @@ final class Update extends CollectionOperation
     {
         $upsert = $this->options['upsert'] ?? false;
         $sql = $queryBuilder->createUpdate($this->database, $this->collection, $this->filter, $this->update, $this->options, $this->multi);
-        $rowCount = $pdo->exec($sql);
-        $rowCount = $rowCount === false ? 0 : $rowCount;
+        $rowCount = SqlRunner::exec($pdo, $sql);
 
         if ($upsert && $rowCount === 1) {
             $matchedCount = 0;
