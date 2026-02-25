@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango\Operation;
 
-use Patchlevel\Rango\QueryBuilder;
 use Patchlevel\Rango\Cursor;
+use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
 final class FindOneAndReplace implements Operation

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
-/**
- * @template T of array
- */
+/** @template T of array */
 final class Collection
 {
     public function __construct(
@@ -230,9 +228,7 @@ final class Collection
         $this->client->run(new Operation\DropIndex($this->databaseName, $this->collectionName, $name));
     }
 
-    /**
-     * @return list<array{name: string}>
-     */
+    /** @return list<array{name: string}> */
     public function listIndexes(): array
     {
         return $this->client->run(new Operation\ListIndexes($this->databaseName, $this->collectionName));

@@ -22,9 +22,7 @@ final class Database
         return $this->getCollection($collectionName);
     }
 
-    /**
-     * @return list<array{name: string}>
-     */
+    /** @return list<array{name: string}> */
     public function listCollections(): array
     {
         return $this->client->listCollections($this->databaseName);

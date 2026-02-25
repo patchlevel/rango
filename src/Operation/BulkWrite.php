@@ -43,6 +43,7 @@ final class BulkWrite implements Operation
                         if (!isset($document['_id'])) {
                             $document['_id'] = bin2hex(random_bytes(12));
                         }
+
                         $sql = $queryBuilder->createInsert($this->database, $this->collection, $document);
                         $pdo->exec($sql);
                         $insertedCount++;
@@ -73,9 +74,11 @@ final class BulkWrite implements Operation
                     }
                 }
             }
+
             $pdo->commit();
         } catch (Throwable $e) {
             $pdo->rollBack();
+
             throw $e;
         }
 

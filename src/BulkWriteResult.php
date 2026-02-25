@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
-use function count;
-
 final class BulkWriteResult
 {
     /**

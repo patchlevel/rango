@@ -10,6 +10,9 @@ use RuntimeException;
 use function array_keys;
 use function array_map;
 use function array_merge;
+use function array_pop;
+use function count;
+use function explode;
 use function implode;
 use function in_array;
 use function is_array;
@@ -21,6 +24,8 @@ use function sprintf;
 use function str_contains;
 use function str_replace;
 use function str_starts_with;
+use function strlen;
+use function substr;
 
 /** @internal */
 final class QueryBuilder
@@ -76,9 +81,11 @@ final class QueryBuilder
                     $parts = explode('.', $field);
                     $topKey = $parts[0];
 
-                    if (!isset($topLevelInclusions[$topKey])) {
-                        $topLevelInclusions[$topKey] = $this->buildNestedProjectionForTopKey($topKey, $include, 'data');
+                    if (isset($topLevelInclusions[$topKey])) {
+                        continue;
                     }
+
+                    $topLevelInclusions[$topKey] = $this->buildNestedProjectionForTopKey($topKey, $include, 'data');
                 }
 
                 if (!isset($topLevelInclusions['_id']) && (!isset($projection['_id']) || $projection['_id'])) {
@@ -117,6 +124,7 @@ final class QueryBuilder
                     foreach ($parts as $part) {
                         $expression = sprintf('%s->%s', $expression, $this->pdo->quote($part));
                     }
+
                     $sortParts[] = sprintf('%s %s', $expression, $dir);
                 } else {
                     $sortParts[] = sprintf('data->%s %s', $this->pdo->quote($field), $dir);
@@ -856,7 +864,7 @@ final class QueryBuilder
 
         $parts = [];
         foreach ($key as $field => $direction) {
-            $parts[] = sprintf("(data->%s)", $this->pdo->quote($field));
+            $parts[] = sprintf('(data->%s)', $this->pdo->quote($field));
         }
 
         return sprintf(
@@ -880,7 +888,7 @@ final class QueryBuilder
     public function createListIndexes(string $database, string $collection): string
     {
         return sprintf(
-            "SELECT indexname as name FROM pg_indexes WHERE schemaname = %s AND tablename = %s",
+            'SELECT indexname as name FROM pg_indexes WHERE schemaname = %s AND tablename = %s',
             $this->pdo->quote($database),
             $this->pdo->quote($collection),
         );
@@ -894,7 +902,7 @@ final class QueryBuilder
     public function createListCollections(string $database): string
     {
         return sprintf(
-            "SELECT table_name as name FROM information_schema.tables WHERE table_schema = %s",
+            'SELECT table_name as name FROM information_schema.tables WHERE table_schema = %s',
             $this->pdo->quote($database),
         );
     }
@@ -917,9 +925,11 @@ final class QueryBuilder
                 return sprintf('%s->%s', $column, $this->pdo->quote($topKey));
             }
 
-            if (str_starts_with($field, $topKey . '.')) {
-                $relevant[] = substr($field, strlen($topKey) + 1);
+            if (!str_starts_with($field, $topKey . '.')) {
+                continue;
             }
+
+            $relevant[] = substr($field, strlen($topKey) + 1);
         }
 
         if (empty($relevant)) {
@@ -932,9 +942,11 @@ final class QueryBuilder
             $parts = explode('.', $field);
             $subKey = $parts[0];
 
-            if (!isset($subTopLevel[$subKey])) {
-                $subTopLevel[$subKey] = $this->buildNestedProjectionForTopKey($subKey, $relevant, sprintf('%s->%s', $column, $this->pdo->quote($topKey)));
+            if (isset($subTopLevel[$subKey])) {
+                continue;
             }
+
+            $subTopLevel[$subKey] = $this->buildNestedProjectionForTopKey($subKey, $relevant, sprintf('%s->%s', $column, $this->pdo->quote($topKey)));
         }
 
         foreach ($subTopLevel as $key => $expr) {

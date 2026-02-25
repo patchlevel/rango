@@ -16,11 +16,10 @@ use function array_map;
 use function array_values;
 use function is_array;
 use function iterator_to_array;
+use function json_encode;
 use function sort;
 
-/**
- * @internal
- */
+/** @internal */
 abstract class IntegrationTest extends TestCase
 {
     protected MongoDbCollection|RangoCollection $collection;
@@ -856,10 +855,12 @@ abstract class IntegrationTest extends TestCase
         $pipeline = [
             ['$match' => ['status' => 'A']],
             ['$unwind' => '$tags'],
-            ['$group' => [
-                '_id' => '$tags',
-                'total' => ['$sum' => '$amount'],
-            ]],
+            [
+                '$group' => [
+                    '_id' => '$tags',
+                    'total' => ['$sum' => '$amount'],
+                ],
+            ],
             ['$sort' => ['total' => -1]],
         ];
 
