@@ -7,6 +7,7 @@ namespace Patchlevel\Rango\Tests;
 use Patchlevel\Rango\Client;
 use Patchlevel\Rango\Collection;
 use Patchlevel\Rango\Database;
+use RuntimeException;
 
 use function getenv;
 
@@ -17,7 +18,7 @@ final class PostgresIntegrationTest extends IntegrationTest
         $uri = getenv('POSTGRES_URI');
 
         if ($uri === false) {
-            throw new \RuntimeException('POSTGRES_URI is not set');
+            throw new RuntimeException('POSTGRES_URI is not set');
         }
 
         return $uri;

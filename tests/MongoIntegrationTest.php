@@ -7,6 +7,7 @@ namespace Patchlevel\Rango\Tests;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
+use RuntimeException;
 
 use function class_exists;
 use function getenv;
@@ -18,7 +19,7 @@ final class MongoIntegrationTest extends IntegrationTest
         $uri = getenv('MONGODB_URI');
 
         if ($uri === false) {
-            throw new \RuntimeException('MONGODB_URI is not set');
+            throw new RuntimeException('MONGODB_URI is not set');
         }
 
         return $uri;

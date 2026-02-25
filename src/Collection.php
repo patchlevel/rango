@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
+use function assert;
+use function is_int;
+
 final class Collection
 {
     public function __construct(
@@ -19,8 +22,8 @@ final class Collection
      */
     public function countDocuments(array $filter = [], array $options = []): int
     {
-        /** @var int $count */
         $count = $this->client->run(new Operation\Count($this->databaseName, $this->collectionName, $filter, $options));
+        assert(is_int($count));
 
         return $count;
     }
@@ -31,8 +34,8 @@ final class Collection
      */
     public function deleteMany(array $filter, array $options = []): DeleteResult
     {
-        /** @var DeleteResult $result */
         $result = $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, true));
+        assert($result instanceof DeleteResult);
 
         return $result;
     }
@@ -43,8 +46,8 @@ final class Collection
      */
     public function deleteOne(array $filter, array $options = []): DeleteResult
     {
-        /** @var DeleteResult $result */
         $result = $this->client->run(new Operation\Delete($this->databaseName, $this->collectionName, $filter, false));
+        assert($result instanceof DeleteResult);
 
         return $result;
     }
@@ -57,13 +60,11 @@ final class Collection
     /**
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
-     *
-     * @return Cursor
      */
     public function find(array $filter = [], array $options = []): Cursor
     {
-        /** @var Cursor $cursor */
         $cursor = $this->client->run(new Operation\Find($this->databaseName, $this->collectionName, $filter, $options));
+        assert($cursor instanceof Cursor);
 
         return $cursor;
     }
@@ -76,8 +77,8 @@ final class Collection
      */
     public function findOne(array $filter = [], array $options = []): array|null
     {
-        /** @var Cursor|null $result */
         $result = $this->client->run(new Operation\FindOne($this->databaseName, $this->collectionName, $filter, $options));
+        assert($result instanceof Cursor || $result === null);
 
         if (!$result instanceof Cursor) {
             return null;
@@ -94,8 +95,8 @@ final class Collection
      */
     public function insertMany(array $documents, array $options = []): InsertManyResult
     {
-        /** @var InsertManyResult $result */
         $result = $this->client->run(new Operation\InsertMany($this->databaseName, $this->collectionName, $documents, $options));
+        assert($result instanceof InsertManyResult);
 
         return $result;
     }
@@ -106,8 +107,8 @@ final class Collection
      */
     public function insertOne(array $document, array $options = []): InsertOneResult
     {
-        /** @var InsertOneResult $result */
         $result = $this->client->run(new Operation\InsertOne($this->databaseName, $this->collectionName, $document, $options));
+        assert($result instanceof InsertOneResult);
 
         return $result;
     }
@@ -119,8 +120,8 @@ final class Collection
      */
     public function replaceOne(array $filter, array $replacement, array $options = []): UpdateResult
     {
-        /** @var UpdateResult $result */
         $result = $this->client->run(new Operation\ReplaceOne($this->databaseName, $this->collectionName, $filter, $replacement, $options));
+        assert($result instanceof UpdateResult);
 
         return $result;
     }
@@ -132,8 +133,8 @@ final class Collection
      */
     public function updateMany(array $filter, array $update, array $options = []): UpdateResult
     {
-        /** @var UpdateResult $result */
         $result = $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, true));
+        assert($result instanceof UpdateResult);
 
         return $result;
     }
@@ -145,8 +146,8 @@ final class Collection
      */
     public function updateOne(array $filter, array $update, array $options = []): UpdateResult
     {
-        /** @var UpdateResult $result */
         $result = $this->client->run(new Operation\Update($this->databaseName, $this->collectionName, $filter, $update, $options, false));
+        assert($result instanceof UpdateResult);
 
         return $result;
     }
@@ -154,13 +155,11 @@ final class Collection
     /**
      * @param list<array<string, mixed>> $pipeline
      * @param array<string, mixed>       $options
-     *
-     * @return Cursor
      */
     public function aggregate(array $pipeline, array $options = []): Cursor
     {
-        /** @var Cursor $cursor */
         $cursor = $this->client->run(new Operation\Aggregate($this->databaseName, $this->collectionName, $pipeline, $options));
+        assert($cursor instanceof Cursor);
 
         return $cursor;
     }
@@ -187,8 +186,8 @@ final class Collection
      */
     public function findOneAndDelete(array $filter, array $options = []): array|null
     {
-        /** @var Cursor|null $result */
         $result = $this->client->run(new Operation\FindOneAndDelete($this->databaseName, $this->collectionName, $filter, $options));
+        assert($result instanceof Cursor || $result === null);
 
         if (!$result instanceof Cursor) {
             return null;
@@ -208,8 +207,8 @@ final class Collection
      */
     public function findOneAndReplace(array $filter, array $replacement, array $options = []): array|null
     {
-        /** @var Cursor|null $result */
         $result = $this->client->run(new Operation\FindOneAndReplace($this->databaseName, $this->collectionName, $filter, $replacement, $options));
+        assert($result instanceof Cursor || $result === null);
 
         if (!$result instanceof Cursor) {
             return null;
@@ -229,8 +228,8 @@ final class Collection
      */
     public function findOneAndUpdate(array $filter, array $update, array $options = []): array|null
     {
-        /** @var Cursor|null $result */
         $result = $this->client->run(new Operation\FindOneAndUpdate($this->databaseName, $this->collectionName, $filter, $update, $options));
+        assert($result instanceof Cursor || $result === null);
 
         if (!$result instanceof Cursor) {
             return null;
@@ -243,12 +242,12 @@ final class Collection
 
     /**
      * @param list<array<string, list<array<string, mixed>>>> $operations
-     * @param array<string, mixed>                             $options
+     * @param array<string, mixed>                            $options
      */
     public function bulkWrite(array $operations, array $options = []): BulkWriteResult
     {
-        /** @var BulkWriteResult $result */
         $result = $this->client->run(new Operation\BulkWrite($this->databaseName, $this->collectionName, $operations, $options));
+        assert($result instanceof BulkWriteResult);
 
         return $result;
     }

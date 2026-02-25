@@ -12,13 +12,11 @@ final class Database
     ) {
     }
 
-    /** @return Collection */
     public function getCollection(string $collectionName): Collection
     {
         return new Collection($this->client, $this->databaseName, $collectionName);
     }
 
-    /** @return Collection */
     public function selectCollection(string $collectionName): Collection
     {
         return $this->getCollection($collectionName);

@@ -22,7 +22,6 @@ final class Aggregate implements Operation
     ) {
     }
 
-    /** @return Cursor */
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor
     {
         $sql = $queryBuilder->createAggregate($this->database, $this->collection, $this->pipeline, $this->options);

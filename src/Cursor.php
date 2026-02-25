@@ -35,7 +35,7 @@ class Cursor implements IteratorAggregate, Countable
                     break;
                 }
 
-                yield $this->decode((string) $item);
+                yield $this->decode((string)$item);
             }
 
             return;

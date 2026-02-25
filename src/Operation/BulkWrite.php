@@ -16,7 +16,7 @@ final class BulkWrite implements Operation
 {
     /**
      * @param list<array<string, list<array<string, mixed>>>> $operations
-     * @param array<string, mixed>                             $options
+     * @param array<string, mixed>                            $options
      */
     public function __construct(
         public readonly string $database,

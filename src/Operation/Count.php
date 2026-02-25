@@ -31,6 +31,6 @@ final class Count implements Operation
             return 0;
         }
 
-        return (int) $statement->fetchColumn();
+        return (int)$statement->fetchColumn();
     }
 }
