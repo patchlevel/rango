@@ -162,6 +162,21 @@ abstract class IntegrationTest extends TestCase
         $this->assertArrayNotHasKey('age', $doc);
     }
 
+    public function testProjectionExcludeNested(): void
+    {
+        $this->collection->insertOne([
+            '_id' => '1',
+            'profile' => ['name' => 'foo', 'stats' => ['score' => 5, 'level' => 2]],
+        ]);
+
+        $doc = $this->collection->findOne(['_id' => '1'], ['projection' => ['profile.stats.score' => 0]]);
+
+        $this->assertArrayHasKey('profile', $doc);
+        $this->assertArrayHasKey('stats', $doc['profile']);
+        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
+        $this->assertEquals(2, $doc['profile']['stats']['level']);
+    }
+
     public function testReplaceOne(): void
     {
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo', 'age' => 42]);
@@ -1181,6 +1196,99 @@ abstract class IntegrationTest extends TestCase
         $this->assertEquals('2', $docs[0]['_id']);
         $this->assertEquals('A', $docs[0]['metadata']['label']);
         $this->assertArrayNotHasKey('order', $docs[0]['metadata']);
+    }
+
+    public function testUpdateWithDotNotation(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'profile' => ['name' => 'foo', 'stats' => ['score' => 1]]]);
+
+        $this->collection->updateOne(
+            ['_id' => '1'],
+            [
+                '$set' => ['profile.name' => 'bar'],
+                '$inc' => ['profile.stats.score' => 2],
+            ],
+        );
+
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals('bar', $doc['profile']['name']);
+        $this->assertEquals(3, $doc['profile']['stats']['score']);
+    }
+
+    public function testDeeplyNestedUpdate(): void
+    {
+        $this->collection->insertOne(['_id' => '1']);
+
+        $this->collection->updateOne(
+            ['_id' => '1'],
+            [
+                '$set' => ['a.b.c.d.e.f' => 'deep'],
+                '$inc' => ['a.b.c.d.e.counter' => 2],
+            ],
+        );
+
+        $doc = $this->collection->findOne(['_id' => '1']);
+
+        $this->assertEquals('deep', $doc['a']['b']['c']['d']['e']['f']);
+        $this->assertEquals(2, $doc['a']['b']['c']['d']['e']['counter']);
+    }
+
+    public function testUnsetWithDotNotation(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'profile' => ['name' => 'foo', 'stats' => ['score' => 1]]]);
+
+        $this->collection->updateOne(['_id' => '1'], ['$unset' => ['profile.stats.score' => true]]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+
+        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
+    }
+
+    public function testRenameWithDotNotation(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'profile' => ['name' => 'foo', 'stats' => ['score' => 1]]]);
+
+        $this->collection->updateOne(['_id' => '1'], ['$rename' => ['profile.stats.score' => 'profile.stats.points']]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+
+        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
+        $this->assertEquals(1, $doc['profile']['stats']['points']);
+    }
+
+    public function testNestedProjectionInclude(): void
+    {
+        $this->collection->insertOne([
+            '_id' => '1',
+            'profile' => ['name' => 'foo', 'stats' => ['score' => 5, 'level' => 2]],
+            'meta' => ['active' => true],
+        ]);
+
+        $doc = $this->collection->findOne(['_id' => '1'], ['projection' => ['profile.stats.level' => 1]]);
+
+        $this->assertArrayHasKey('_id', $doc);
+        $this->assertArrayHasKey('profile', $doc);
+        $this->assertArrayHasKey('stats', $doc['profile']);
+        $this->assertArrayHasKey('level', $doc['profile']['stats']);
+        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
+        $this->assertArrayNotHasKey('meta', $doc);
+    }
+
+    public function testProjectionExcludesNestedAndTopLevel(): void
+    {
+        $this->collection->insertOne([
+            '_id' => '1',
+            'profile' => ['name' => 'foo', 'stats' => ['score' => 5, 'level' => 2]],
+            'meta' => ['active' => true],
+        ]);
+
+        $doc = $this->collection->findOne(['_id' => '1'], [
+            'projection' => ['profile.stats.score' => 0, 'meta' => 0],
+        ]);
+
+        $this->assertArrayHasKey('profile', $doc);
+        $this->assertArrayHasKey('stats', $doc['profile']);
+        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
+        $this->assertEquals(2, $doc['profile']['stats']['level']);
+        $this->assertArrayNotHasKey('meta', $doc);
     }
 
     public function testSelectAliases(): void

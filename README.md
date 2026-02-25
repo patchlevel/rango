@@ -86,6 +86,8 @@ $collection->updateOne(
 | **Evaluation** | `$regex`, `$mod` |
 | **Array** | `$all`, `$size`, `$elemMatch` |
 
+Projection supports dot-notation in both inclusion and exclusion (e.g. `['profile.stats.score' => 0]`).
+
 ### Aggregation Framework
 | Feature | Details |
 | --- | --- |
@@ -95,7 +97,7 @@ $collection->updateOne(
 ### Update Operators
 | Category | Operators |
 | --- | --- |
-| **Field** | `$set`, `$setOnInsert`, `$inc`, `$mul`, `$unset`, `$rename`, `$min`, `$max`, `$currentDate` |
+| **Field** | `$set`, `$setOnInsert`, `$inc`, `$mul`, `$unset`, `$rename`, `$min`, `$max`, `$currentDate` (incl. dot-notation) |
 | **Array** | `$push` (inc. `$each`), `$pull`, `$addToSet`, `$pop` |
 | **Bitwise** | `$bit` (`and`, `or`, `xor`) |
 

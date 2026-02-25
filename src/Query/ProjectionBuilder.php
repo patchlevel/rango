@@ -9,6 +9,8 @@ use PDO;
 use function explode;
 use function implode;
 use function sprintf;
+use function str_contains;
+use function str_replace;
 use function str_starts_with;
 use function strlen;
 use function substr;
@@ -73,7 +75,11 @@ final class ProjectionBuilder
         if (!empty($exclude)) {
             $result = $column;
             foreach ($exclude as $field) {
-                $result = sprintf('%s - %s', $result, $this->pdo->quote($field));
+                if (str_contains($field, '.')) {
+                    $result = sprintf('(%s) #- %s::text[]', $result, $this->pathLiteral($field));
+                } else {
+                    $result = sprintf('(%s) - %s::text', $result, $this->pdo->quote($field));
+                }
             }
 
             return $result;
@@ -125,5 +131,12 @@ final class ProjectionBuilder
         }
 
         return sprintf('jsonb_build_object(%s)', implode(', ', $fields));
+    }
+
+    private function pathLiteral(string $field): string
+    {
+        $path = '{' . str_replace('.', ',', $field) . '}';
+
+        return $this->pdo->quote($path);
     }
 }

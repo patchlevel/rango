@@ -11,11 +11,13 @@ use function array_merge;
 use function is_array;
 use function json_encode;
 use function sprintf;
+use function str_contains;
 use function str_replace;
-use function str_starts_with;
 
 final class UpdateBuilder
 {
+    private const DATA_PLACEHOLDER = '__DATA__';
+
     public function __construct(
         private readonly PDO $pdo,
     ) {
@@ -46,15 +48,25 @@ final class UpdateBuilder
         $updateParts = [];
 
         if ($setData) {
-            $updateParts[] = sprintf('data || %s', $this->pdo->quote(json_encode($setData)));
+            foreach ($setData as $field => $value) {
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
+                $updateParts[] = sprintf(
+                    'jsonb_set(%s, %s, %s::jsonb, true)',
+                    $baseExpression,
+                    $this->pathLiteral($field),
+                    $this->pdo->quote(json_encode($value)),
+                );
+            }
         }
 
         if ($incData) {
             foreach ($incData as $field => $value) {
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                 $updateParts[] = sprintf(
-                    'jsonb_set(data, %s, (COALESCE(data->>%s, \'0\')::numeric + %s)::text::jsonb)',
-                    $this->pdo->quote('{' . $field . '}'),
-                    $this->pdo->quote($field),
+                    'jsonb_set(%s, %s, (COALESCE(%s, \'0\')::numeric + %s)::text::jsonb, true)',
+                    $baseExpression,
+                    $this->pathLiteral($field),
+                    $this->jsonbExtractText($field, $baseExpression),
                     (float)$value,
                 );
             }
@@ -62,37 +74,45 @@ final class UpdateBuilder
 
         if ($mulData) {
             foreach ($mulData as $field => $value) {
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                 $updateParts[] = sprintf(
-                    'jsonb_set(data, %s, (COALESCE(data->>%s, \'0\')::numeric * %s)::text::jsonb)',
-                    $this->pdo->quote('{' . $field . '}'),
-                    $this->pdo->quote($field),
+                    'jsonb_set(%s, %s, (COALESCE(%s, \'0\')::numeric * %s)::text::jsonb, true)',
+                    $baseExpression,
+                    $this->pathLiteral($field),
+                    $this->jsonbExtractText($field, $baseExpression),
                     (float)$value,
                 );
             }
         }
         if ($unsetData) {
             foreach ($unsetData as $field => $value) {
-                $updateParts[] = sprintf('data - %s', $this->pdo->quote($field));
+                $updateParts[] = sprintf('%s #- %s', self::DATA_PLACEHOLDER, $this->pathLiteral($field));
             }
         }
 
         if ($renameData) {
             foreach ($renameData as $oldField => $newField) {
+                $baseExpression = $this->baseExpression(
+                    $newField,
+                    sprintf('%s #- %s', self::DATA_PLACEHOLDER, $this->pathLiteral($oldField)),
+                );
                 $updateParts[] = sprintf(
-                    'jsonb_set(data - %s, %s, data->%s)',
-                    $this->pdo->quote($oldField),
-                    $this->pdo->quote('{' . $newField . '}'),
-                    $this->pdo->quote($oldField),
+                    'jsonb_set(%s, %s, %s, true)',
+                    $baseExpression,
+                    $this->pathLiteral($newField),
+                    $this->jsonbExtract($oldField, self::DATA_PLACEHOLDER),
                 );
             }
         }
 
         if ($minData) {
             foreach ($minData as $field => $value) {
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                 $updateParts[] = sprintf(
-                    'jsonb_set(data, %s, LEAST(data->%s, %s::jsonb))',
-                    $this->pdo->quote('{' . $field . '}'),
-                    $this->pdo->quote($field),
+                    'jsonb_set(%s, %s, LEAST(%s, %s::jsonb), true)',
+                    $baseExpression,
+                    $this->pathLiteral($field),
+                    $this->jsonbExtract($field, $baseExpression),
                     $this->pdo->quote(json_encode($value)),
                 );
             }
@@ -100,10 +120,12 @@ final class UpdateBuilder
 
         if ($maxData) {
             foreach ($maxData as $field => $value) {
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                 $updateParts[] = sprintf(
-                    'jsonb_set(data, %s, GREATEST(data->%s, %s::jsonb))',
-                    $this->pdo->quote('{' . $field . '}'),
-                    $this->pdo->quote($field),
+                    'jsonb_set(%s, %s, GREATEST(%s, %s::jsonb), true)',
+                    $baseExpression,
+                    $this->pathLiteral($field),
+                    $this->jsonbExtract($field, $baseExpression),
                     $this->pdo->quote(json_encode($value)),
                 );
             }
@@ -117,10 +139,12 @@ final class UpdateBuilder
                     $pushValue = json_encode([$value]);
                 }
 
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                 $updateParts[] = sprintf(
-                    'jsonb_set(data, %s, COALESCE(data->%s, \'[]\'::jsonb) || %s)',
-                    $this->pdo->quote('{' . $field . '}'),
-                    $this->pdo->quote($field),
+                    'jsonb_set(%s, %s, COALESCE(%s, \'[]\'::jsonb) || %s, true)',
+                    $baseExpression,
+                    $this->pathLiteral($field),
+                    $this->jsonbExtract($field, $baseExpression),
                     $this->pdo->quote($pushValue),
                 );
             }
@@ -128,10 +152,12 @@ final class UpdateBuilder
 
         if ($pullData) {
             foreach ($pullData as $field => $value) {
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                 $updateParts[] = sprintf(
-                    'jsonb_set(data, %s, COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements(data->%s) x WHERE x != %s), \'[]\'::jsonb))',
-                    $this->pdo->quote('{' . $field . '}'),
-                    $this->pdo->quote($field),
+                    'jsonb_set(%s, %s, COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements(%s) x WHERE x != %s), \'[]\'::jsonb), true)',
+                    $baseExpression,
+                    $this->pathLiteral($field),
+                    $this->jsonbExtract($field, $baseExpression),
                     $this->pdo->quote(json_encode($value)),
                 );
             }
@@ -139,10 +165,12 @@ final class UpdateBuilder
 
         if ($addToSetData) {
             foreach ($addToSetData as $field => $value) {
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                 $updateParts[] = sprintf(
-                    'jsonb_set(data, %1$s, COALESCE(data->%2$s, \'[]\'::jsonb) || (CASE WHEN (data->%2$s) @> %3$s THEN \'[]\'::jsonb ELSE %3$s::jsonb END))',
-                    $this->pdo->quote('{' . $field . '}'),
-                    $this->pdo->quote($field),
+                    'jsonb_set(%1$s, %2$s, COALESCE(%3$s, \'[]\'::jsonb) || (CASE WHEN (%3$s) @> %4$s THEN \'[]\'::jsonb ELSE %4$s::jsonb END), true)',
+                    $baseExpression,
+                    $this->pathLiteral($field),
+                    $this->jsonbExtract($field, $baseExpression),
                     $this->pdo->quote(json_encode([$value])),
                 );
             }
@@ -150,17 +178,20 @@ final class UpdateBuilder
 
         if ($popData) {
             foreach ($popData as $field => $value) {
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                 if ($value === 1) {
                     $updateParts[] = sprintf(
-                        'jsonb_set(data, %1$s, (data->%2$s) - (jsonb_array_length(data->%2$s) - 1))',
-                        $this->pdo->quote('{' . $field . '}'),
-                        $this->pdo->quote($field),
+                        'jsonb_set(%1$s, %2$s, (%3$s) - (jsonb_array_length(%3$s) - 1), true)',
+                        $baseExpression,
+                        $this->pathLiteral($field),
+                        $this->jsonbExtract($field, $baseExpression),
                     );
                 } elseif ($value === -1) {
                     $updateParts[] = sprintf(
-                        'jsonb_set(data, %1$s, (data->%2$s) - 0)',
-                        $this->pdo->quote('{' . $field . '}'),
-                        $this->pdo->quote($field),
+                        'jsonb_set(%1$s, %2$s, (%3$s) - 0, true)',
+                        $baseExpression,
+                        $this->pathLiteral($field),
+                        $this->jsonbExtract($field, $baseExpression),
                     );
                 }
             }
@@ -176,10 +207,12 @@ final class UpdateBuilder
                         default => throw new RuntimeException(sprintf('Bitwise operator "%s" is not supported', $op)),
                     };
 
+                    $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                     $updateParts[] = sprintf(
-                        'jsonb_set(data, %s, (COALESCE(data->>%s, \'0\')::bigint %s %d)::text::jsonb)',
-                        $this->pdo->quote('{' . $field . '}'),
-                        $this->pdo->quote($field),
+                        'jsonb_set(%s, %s, (COALESCE(%s, \'0\')::bigint %s %d)::text::jsonb, true)',
+                        $baseExpression,
+                        $this->pathLiteral($field),
+                        $this->jsonbExtractText($field, $baseExpression),
                         $sqlOp,
                         (int)$value,
                     );
@@ -189,9 +222,11 @@ final class UpdateBuilder
 
         if ($currentDateData) {
             foreach ($currentDateData as $field => $value) {
+                $baseExpression = $this->baseExpression($field, self::DATA_PLACEHOLDER);
                 $updateParts[] = sprintf(
-                    'jsonb_set(data, %s, to_jsonb(CURRENT_TIMESTAMP))',
-                    $this->pdo->quote('{' . $field . '}'),
+                    'jsonb_set(%s, %s, to_jsonb(CURRENT_TIMESTAMP), true)',
+                    $baseExpression,
+                    $this->pathLiteral($field),
                 );
             }
         }
@@ -202,11 +237,7 @@ final class UpdateBuilder
 
         $dataExpression = 'data';
         foreach ($updateParts as $part) {
-            if (str_starts_with($part, 'data ')) {
-                $dataExpression = str_replace('data ', $dataExpression . ' ', $part);
-            } else {
-                $dataExpression = str_replace('data,', $dataExpression . ',', $part);
-            }
+            $dataExpression = str_replace(self::DATA_PLACEHOLDER, $dataExpression, $part);
         }
 
         return [
@@ -226,5 +257,56 @@ final class UpdateBuilder
     public function buildUpsertDocument(array $filter, array|null $setData, array|null $setOnInsertData): array
     {
         return array_merge($filter, $setData ?? [], $setOnInsertData ?? []);
+    }
+
+    private function pathLiteral(string $field): string
+    {
+        $path = '{' . str_replace('.', ',', $field) . '}';
+
+        return $this->pdo->quote($path) . '::text[]';
+    }
+
+    private function jsonbExtract(string $field, string $baseExpression): string
+    {
+        if (str_contains($field, '.')) {
+            return sprintf('(%s)#>%s', $baseExpression, $this->pathLiteral($field));
+        }
+
+        return sprintf('(%s)->%s', $baseExpression, $this->pdo->quote($field));
+    }
+
+    private function jsonbExtractText(string $field, string $baseExpression): string
+    {
+        if (str_contains($field, '.')) {
+            return sprintf('(%s)#>>%s', $baseExpression, $this->pathLiteral($field));
+        }
+
+        return sprintf('(%s)->>%s', $baseExpression, $this->pdo->quote($field));
+    }
+
+    private function baseExpression(string $field, string $baseExpression): string
+    {
+        if (!str_contains($field, '.')) {
+            return $baseExpression;
+        }
+
+        $parts = explode('.', $field);
+        array_pop($parts);
+
+        $expression = $baseExpression;
+        $path = [];
+        foreach ($parts as $part) {
+            $path[] = $part;
+            $pathLiteral = $this->pathLiteral(implode('.', $path));
+            $expression = sprintf(
+                'jsonb_set(%s, %s, COALESCE((%s)#>%s, \'{}\'::jsonb), true)',
+                $expression,
+                $pathLiteral,
+                $expression,
+                $pathLiteral,
+            );
+        }
+
+        return $expression;
     }
 }
