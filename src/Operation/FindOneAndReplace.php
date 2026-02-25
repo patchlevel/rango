@@ -10,8 +10,8 @@ use PDO;
 
 use function is_string;
 
-/** @implements Operation<Cursor|null> */
-final class FindOneAndReplace implements Operation
+/** @extends CollectionOperation<Cursor|null> */
+final class FindOneAndReplace extends CollectionOperation
 {
     /**
      * @param array<string, mixed> $filter
@@ -19,12 +19,13 @@ final class FindOneAndReplace implements Operation
      * @param array<string, mixed> $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $filter,
         private readonly array $replacement,
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor|null

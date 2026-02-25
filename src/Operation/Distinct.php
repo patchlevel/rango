@@ -12,21 +12,22 @@ use function array_values;
 use function is_string;
 use function json_decode;
 
-/** @implements Operation<list<mixed>> */
-final class Distinct implements Operation
+/** @extends CollectionOperation<list<mixed>> */
+final class Distinct extends CollectionOperation
 {
     /**
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly string $fieldName,
         private readonly array $filter = [],
         /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     /** @return list<mixed> */

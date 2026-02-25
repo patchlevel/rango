@@ -8,16 +8,17 @@ use Patchlevel\Rango\DeleteResult;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
-/** @implements Operation<DeleteResult> */
-final class Delete implements Operation
+/** @extends CollectionOperation<DeleteResult> */
+final class Delete extends CollectionOperation
 {
     /** @param array<string, mixed> $filter */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $filter,
         private readonly bool $multi = false,
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): DeleteResult

@@ -1,1 +1,361 @@
 parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \#1 \$operation of method Patchlevel\\Rango\\Client\:\:run\(\) expects Patchlevel\\Rango\\Operation\\Operation\<list\<mixed\>\>, Patchlevel\\Rango\\Operation\\Distinct given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Collection.php
+
+		-
+			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 18
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Binary operation "\." between ''\{'' and mixed results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 11
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Cannot access offset ''_id'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 3
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Cannot access offset ''as'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Cannot access offset ''foreignField'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Cannot access offset ''from'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Cannot access offset ''localField'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Cannot cast mixed to float\.$#'
+			identifier: cast.double
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Cannot cast mixed to int\.$#'
+			identifier: cast.int
+			count: 8
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 5
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$array of method Patchlevel\\Rango\\QueryBuilder\:\:isOperatorArray\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\QueryBuilder\:\:buildFilter\(\) expects array\<string, mixed\>, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\QueryBuilder\:\:buildWhere\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$filter of method Patchlevel\\Rango\\QueryBuilder\:\:buildWhere\(\) expects array\<string, mixed\>, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$haystack of function str_contains expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$identifier of method Patchlevel\\Rango\\QueryBuilder\:\:quoteIdentifier\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$queries of method Patchlevel\\Rango\\QueryBuilder\:\:buildLogicalOperator\(\) expects list\<array\<string, mixed\>\>, mixed given\.$#'
+			identifier: argument.type
+			count: 3
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$string of function ltrim expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 8
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 25
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$string of method PDO\:\:quote\(\) expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 22
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#2 \$allInclusions of method Patchlevel\\Rango\\QueryBuilder\:\:buildNestedProjectionForTopKey\(\) expects list\<string\>, non\-empty\-list\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#2 \$string of function explode expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 4
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#2 \.\.\.\$arrays of function array_merge expects array, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#2 \.\.\.\$values of function sprintf expects bool\|float\|int\|string\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Parameter \#4 \$allOperators of method Patchlevel\\Rango\\QueryBuilder\:\:buildOperatorFilter\(\) expects array\<string, mixed\>, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Possibly invalid array key type mixed\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: src/QueryBuilder.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertNotNull\(\) with MongoDB\\Collection\|Patchlevel\\Rango\\Collection will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertNotNull\(\) with MongoDB\\Database\|Patchlevel\\Rango\\Database will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''_id'' on array\|object\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''_id'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 19
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''age'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''avg'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''category'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''count'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''counter'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''first'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''items'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 3
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''label'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''last'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''max'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''metadata'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''min'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''name'' on array\|object\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 5
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''name'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 7
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''name'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 4
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''nickname'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''product'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''product_details'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 4
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''score'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''tags'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 8
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''total'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 5
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''v'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 8
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset ''val'' on array\|object\|null\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 4
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot access offset 0 on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Cannot cast mixed to string\.$#'
+			identifier: cast.string
+			count: 4
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Parameter \#2 \$array of method PHPUnit\\Framework\\Assert\:\:assertArrayHasKey\(\) expects array\<mixed\>\|ArrayAccess\<\(int\|string\), mixed\>, array\|object\|null given\.$#'
+			identifier: argument.type
+			count: 5
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Parameter \#2 \$array of method PHPUnit\\Framework\\Assert\:\:assertArrayNotHasKey\(\) expects array\<mixed\>\|ArrayAccess\<\(int\|string\), mixed\>, array\|object\|null given\.$#'
+			identifier: argument.type
+			count: 4
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Parameter \#2 \$array of method PHPUnit\\Framework\\Assert\:\:assertArrayNotHasKey\(\) expects array\<mixed\>\|ArrayAccess\<\(int\|string\), mixed\>, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/IntegrationTest.php
+
+		-
+			message: '#^Parameter \#2 \$haystack of method PHPUnit\\Framework\\Assert\:\:assertCount\(\) expects Countable\|iterable, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: tests/IntegrationTest.php

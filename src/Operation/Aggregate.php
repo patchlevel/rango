@@ -8,19 +8,20 @@ use Patchlevel\Rango\Cursor;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
-/** @implements Operation<Cursor> */
-final class Aggregate implements Operation
+/** @extends CollectionOperation<Cursor> */
+final class Aggregate extends CollectionOperation
 {
     /**
      * @param list<array<string, mixed>> $pipeline
      * @param array<string, mixed>       $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $pipeline,
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor

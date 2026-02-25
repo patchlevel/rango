@@ -7,19 +7,20 @@ namespace Patchlevel\Rango\Operation;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
-/** @implements Operation<bool> */
-final class CreateIndex implements Operation
+/** @extends CollectionOperation<bool> */
+final class CreateIndex extends CollectionOperation
 {
     /**
      * @param array<string, int>   $key
      * @param array<string, mixed> $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $key,
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): bool

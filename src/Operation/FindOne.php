@@ -10,19 +10,20 @@ use PDO;
 
 use function is_string;
 
-/** @implements Operation<Cursor> */
-final class FindOne implements Operation
+/** @extends CollectionOperation<Cursor> */
+final class FindOne extends CollectionOperation
 {
     /**
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $filter,
         private array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor

@@ -11,20 +11,21 @@ use PDO;
 use function bin2hex;
 use function random_bytes;
 
-/** @implements Operation<InsertOneResult> */
-final class InsertOne implements Operation
+/** @extends CollectionOperation<InsertOneResult> */
+final class InsertOne extends CollectionOperation
 {
     /**
      * @param array<string, mixed> $document
      * @param array<string, mixed> $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private array $document,
         /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): InsertOneResult

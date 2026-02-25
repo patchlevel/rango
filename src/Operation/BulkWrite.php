@@ -12,20 +12,21 @@ use Throwable;
 use function bin2hex;
 use function random_bytes;
 
-/** @implements Operation<BulkWriteResult> */
-final class BulkWrite implements Operation
+/** @extends CollectionOperation<BulkWriteResult> */
+final class BulkWrite extends CollectionOperation
 {
     /**
      * @param list<array<string, list<array<string, mixed>>>> $operations
      * @param array<string, mixed>                            $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $operations,
         /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): BulkWriteResult

@@ -60,29 +60,15 @@ final class Client
     }
 
     /**
-     * @template TReturn
      * @param Operation\Operation<TReturn> $operation
+     *
      * @return TReturn
+     *
+     * @template TReturn
      */
     public function run(Operation\Operation $operation): mixed
     {
-        if (
-            $operation instanceof Operation\InsertOne ||
-            $operation instanceof Operation\InsertMany ||
-            $operation instanceof Operation\Find ||
-            $operation instanceof Operation\FindOne ||
-            $operation instanceof Operation\Update ||
-            $operation instanceof Operation\ReplaceOne ||
-            $operation instanceof Operation\Delete ||
-            $operation instanceof Operation\Count ||
-            $operation instanceof Operation\Aggregate ||
-            $operation instanceof Operation\Distinct ||
-            $operation instanceof Operation\FindOneAndDelete ||
-            $operation instanceof Operation\FindOneAndReplace ||
-            $operation instanceof Operation\FindOneAndUpdate ||
-            $operation instanceof Operation\BulkWrite ||
-            $operation instanceof Operation\CreateIndex
-        ) {
+        if ($operation instanceof Operation\CollectionOperation) {
             $this->run(new Operation\CreateCollection($operation->database, $operation->collection));
         }
 

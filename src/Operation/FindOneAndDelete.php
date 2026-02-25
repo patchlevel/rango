@@ -10,20 +10,21 @@ use PDO;
 
 use function is_string;
 
-/** @implements Operation<Cursor|null> */
-final class FindOneAndDelete implements Operation
+/** @extends CollectionOperation<Cursor|null> */
+final class FindOneAndDelete extends CollectionOperation
 {
     /**
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $filter,
         /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): Cursor|null

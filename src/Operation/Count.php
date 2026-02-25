@@ -7,20 +7,21 @@ namespace Patchlevel\Rango\Operation;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
-/** @implements Operation<int> */
-final class Count implements Operation
+/** @extends CollectionOperation<int> */
+final class Count extends CollectionOperation
 {
     /**
      * @param array<string, mixed> $filter
      * @param array<string, mixed> $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $filter = [],
         /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): int

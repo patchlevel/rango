@@ -7,9 +7,7 @@ namespace Patchlevel\Rango\Operation;
 use Patchlevel\Rango\QueryBuilder;
 use PDO;
 
-/**
- * @template TReturn
- */
+/** @template TReturn */
 interface Operation
 {
     /** @return TReturn */

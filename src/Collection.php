@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
-
 final class Collection
 {
     public function __construct(

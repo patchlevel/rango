@@ -8,8 +8,8 @@ use Patchlevel\Rango\QueryBuilder;
 use Patchlevel\Rango\UpdateResult;
 use PDO;
 
-/** @implements Operation<UpdateResult> */
-final class ReplaceOne implements Operation
+/** @extends CollectionOperation<UpdateResult> */
+final class ReplaceOne extends CollectionOperation
 {
     /**
      * @param array<string, mixed> $filter
@@ -17,12 +17,13 @@ final class ReplaceOne implements Operation
      * @param array<string, mixed> $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $filter,
         private readonly array $replacement,
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): UpdateResult

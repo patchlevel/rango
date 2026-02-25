@@ -11,20 +11,21 @@ use PDO;
 use function bin2hex;
 use function random_bytes;
 
-/** @implements Operation<InsertManyResult> */
-final class InsertMany implements Operation
+/** @extends CollectionOperation<InsertManyResult> */
+final class InsertMany extends CollectionOperation
 {
     /**
      * @param list<array<string, mixed>> $documents
      * @param array<string, mixed>       $options
      */
     public function __construct(
-        public readonly string $database,
-        public readonly string $collection,
+        string $database,
+        string $collection,
         private readonly array $documents,
         /** @phpstan-ignore-next-line */
         private readonly array $options = [],
     ) {
+        parent::__construct($database, $collection);
     }
 
     public function execute(PDO $pdo, QueryBuilder $queryBuilder): InsertManyResult
