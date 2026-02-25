@@ -14,9 +14,9 @@ final class PostgresIntegrationTest extends IntegrationTest
 {
     protected function setUp(): void
     {
-        parent::setUp();
-
         getenv('POSTGRES_URI') ?: $this->markTestSkipped('POSTGRES_URI is not set');
+
+        parent::setUp();
     }
 
     protected function getClient(): Client

@@ -44,7 +44,7 @@ jobs:
                   - "18.1"
 
         env:
-          POSTGRES_URI: 'pdo-pgsql://postgres:postgres@localhost:5432/eventstore?charset=utf8'
+          POSTGRES_URI: 'pgsql:host=localhost;port=5432;dbname=eventstore;user=postgres;password=postgres'
 
         steps:
             - name: "Checkout"
