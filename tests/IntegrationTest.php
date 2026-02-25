@@ -965,6 +965,56 @@ abstract class IntegrationTest extends TestCase
         $this->assertEquals(2, $doc['counter']);
     }
 
+    public function testMulOperator(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'value' => 5]);
+
+        $this->collection->updateOne(['_id' => '1'], ['$mul' => ['value' => 3]]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+
+        $this->assertEquals(15, $doc['value']);
+    }
+
+    public function testSetOnInsert(): void
+    {
+        $this->collection->updateOne(
+            ['_id' => '1'],
+            [
+                '$set' => ['name' => 'first'],
+                '$setOnInsert' => ['created' => 'yes'],
+            ],
+            ['upsert' => true],
+        );
+
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals('first', $doc['name']);
+        $this->assertEquals('yes', $doc['created']);
+
+        $this->collection->updateOne(
+            ['_id' => '1'],
+            [
+                '$set' => ['name' => 'second'],
+                '$setOnInsert' => ['created' => 'no'],
+            ],
+            ['upsert' => true],
+        );
+
+        $doc = $this->collection->findOne(['_id' => '1']);
+        $this->assertEquals('second', $doc['name']);
+        $this->assertEquals('yes', $doc['created']);
+    }
+
+    public function testRegexOptions(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'text' => "bar\nfoo"],
+            ['_id' => '2', 'text' => "a\nc"],
+        ]);
+
+        $this->assertCount(1, iterator_to_array($this->collection->find(['text' => ['$regex' => '^foo', '$options' => 'm']]))); // multiline
+        $this->assertCount(1, iterator_to_array($this->collection->find(['text' => ['$regex' => 'a.*c', '$options' => 's']]))); // dotall
+    }
+
     public function testInvalidTopLevelOperatorThrows(): void
     {
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);

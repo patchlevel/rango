@@ -221,14 +221,22 @@ final class FilterBuilder
         if ($operator === '$regex') {
             $rawFieldExpression = $field === '_id' ? sprintf("%s->>'_id'", $column) : sprintf('%s->>%s', $column, $this->pdo->quote($field));
 
-            $caseInsensitive = false;
-            if (isset($allOperators['$options']) && str_contains($allOperators['$options'], 'i')) {
-                $caseInsensitive = true;
+            $flags = '';
+            if (isset($allOperators['$options'])) {
+                $options = (string)$allOperators['$options'];
+                foreach (['i', 'm', 's', 'x'] as $flag) {
+                    if (str_contains($options, $flag) && !str_contains($flags, $flag)) {
+                        $flags .= $flag;
+                    }
+                }
             }
 
-            $op = $caseInsensitive ? '~*' : '~';
+            $pattern = (string)$operand;
+            if ($flags !== '') {
+                $pattern = '(?' . $flags . ')' . $pattern;
+            }
 
-            return sprintf('%s %s %s', $rawFieldExpression, $op, $this->pdo->quote((string)$operand));
+            return sprintf('%s ~ %s', $rawFieldExpression, $this->pdo->quote($pattern));
         }
 
         if ($operator === '$all') {

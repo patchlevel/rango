@@ -24,12 +24,14 @@ final class UpdateBuilder
     /**
      * @param array<string, mixed> $update
      *
-     * @return array{expression: string, setData: array<string, mixed>|null}
+     * @return array{expression: string, setData: array<string, mixed>|null, setOnInsertData: array<string, mixed>|null}
      */
     public function buildUpdateExpression(array $update): array
     {
         $setData = $update['$set'] ?? null;
+        $setOnInsertData = $update['$setOnInsert'] ?? null;
         $incData = $update['$inc'] ?? null;
+        $mulData = $update['$mul'] ?? null;
         $unsetData = $update['$unset'] ?? null;
         $pushData = $update['$push'] ?? null;
         $pullData = $update['$pull'] ?? null;
@@ -58,6 +60,16 @@ final class UpdateBuilder
             }
         }
 
+        if ($mulData) {
+            foreach ($mulData as $field => $value) {
+                $updateParts[] = sprintf(
+                    'jsonb_set(data, %s, (COALESCE(data->>%s, \'0\')::numeric * %s)::text::jsonb)',
+                    $this->pdo->quote('{' . $field . '}'),
+                    $this->pdo->quote($field),
+                    (float)$value,
+                );
+            }
+        }
         if ($unsetData) {
             foreach ($unsetData as $field => $value) {
                 $updateParts[] = sprintf('data - %s', $this->pdo->quote($field));
@@ -200,17 +212,19 @@ final class UpdateBuilder
         return [
             'expression' => $dataExpression,
             'setData' => is_array($setData) ? $setData : null,
+            'setOnInsertData' => is_array($setOnInsertData) ? $setOnInsertData : null,
         ];
     }
 
     /**
      * @param array<string, mixed>      $filter
      * @param array<string, mixed>|null $setData
+     * @param array<string, mixed>|null $setOnInsertData
      *
      * @return array<string, mixed>
      */
-    public function buildUpsertDocument(array $filter, array|null $setData): array
+    public function buildUpsertDocument(array $filter, array|null $setData, array|null $setOnInsertData): array
     {
-        return array_merge($filter, $setData ?? []);
+        return array_merge($filter, $setData ?? [], $setOnInsertData ?? []);
     }
 }

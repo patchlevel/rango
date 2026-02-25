@@ -95,7 +95,7 @@ $collection->updateOne(
 ### Update Operators
 | Category | Operators |
 | --- | --- |
-| **Field** | `$set`, `$inc`, `$unset`, `$rename`, `$min`, `$max`, `$currentDate` |
+| **Field** | `$set`, `$setOnInsert`, `$inc`, `$mul`, `$unset`, `$rename`, `$min`, `$max`, `$currentDate` |
 | **Array** | `$push` (inc. `$each`), `$pull`, `$addToSet`, `$pop` |
 | **Bitwise** | `$bit` (`and`, `or`, `xor`) |
 

@@ -118,7 +118,7 @@ final class QueryBuilder
                 throw new RuntimeException('Upsert currently requires _id in filter');
             }
 
-            $insertData = $this->updateBuilder->buildUpsertDocument($filter, $updatePlan['setData']);
+            $insertData = $this->updateBuilder->buildUpsertDocument($filter, $updatePlan['setData'], $updatePlan['setOnInsertData']);
 
             return sprintf(
                 'INSERT INTO %s AS t (data) VALUES (%s) ON CONFLICT ((data->>\'_id\')) DO UPDATE SET data = %s',
