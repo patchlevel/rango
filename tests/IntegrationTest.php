@@ -11,6 +11,7 @@ use Patchlevel\Rango\Client as RangoClient;
 use Patchlevel\Rango\Collection as RangoCollection;
 use Patchlevel\Rango\Database as RangoDatabase;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 use function array_map;
 use function array_values;
@@ -80,6 +81,13 @@ abstract class IntegrationTest extends TestCase
         $this->assertEquals('foo', $doc['name']);
     }
 
+    public function testFindOneNotFound(): void
+    {
+        $doc = $this->collection->findOne(['_id' => 'missing']);
+
+        $this->assertNull($doc);
+    }
+
     public function testUpdateOne(): void
     {
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
@@ -144,6 +152,16 @@ abstract class IntegrationTest extends TestCase
         $this->assertArrayNotHasKey('age', $doc);
     }
 
+    public function testProjectionExcludeId(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'name' => 'foo', 'age' => 42]);
+
+        $doc = $this->collection->findOne(['_id' => '1'], ['projection' => ['name' => 1, '_id' => 0]]);
+        $this->assertArrayHasKey('name', $doc);
+        $this->assertArrayNotHasKey('_id', $doc);
+        $this->assertArrayNotHasKey('age', $doc);
+    }
+
     public function testReplaceOne(): void
     {
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo', 'age' => 42]);
@@ -188,6 +206,17 @@ abstract class IntegrationTest extends TestCase
         $this->assertCount(1, iterator_to_array($this->collection->find(['age' => ['$nin' => [20, 40]]])));
     }
 
+    public function testInAndNinEmpty(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'age' => 20],
+            ['_id' => '2', 'age' => 30],
+        ]);
+
+        $this->assertCount(0, iterator_to_array($this->collection->find(['age' => ['$in' => []]])));
+        $this->assertCount(2, iterator_to_array($this->collection->find(['age' => ['$nin' => []]])));
+    }
+
     public function testLogicalOperators(): void
     {
         $this->collection->insertMany([
@@ -230,6 +259,18 @@ abstract class IntegrationTest extends TestCase
         ]);
 
         $this->assertCount(1, iterator_to_array($this->collection->find(['name' => ['$exists' => true]])));
+        $this->assertCount(1, iterator_to_array($this->collection->find(['name' => ['$exists' => false]])));
+    }
+
+    public function testExistsWithNull(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'name' => null],
+            ['_id' => '2', 'name' => 'foo'],
+            ['_id' => '3', 'age' => 30],
+        ]);
+
+        $this->assertCount(2, iterator_to_array($this->collection->find(['name' => ['$exists' => true]])));
         $this->assertCount(1, iterator_to_array($this->collection->find(['name' => ['$exists' => false]])));
     }
 
@@ -386,6 +427,20 @@ abstract class IntegrationTest extends TestCase
         ]);
 
         $values = $this->collection->distinct('category');
+        sort($values);
+
+        $this->assertEquals(['A', 'B'], $values);
+    }
+
+    public function testDistinctWithFilter(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'category' => 'A', 'status' => 'open'],
+            ['_id' => '2', 'category' => 'B', 'status' => 'closed'],
+            ['_id' => '3', 'category' => 'A', 'status' => 'closed'],
+        ]);
+
+        $values = $this->collection->distinct('category', ['status' => 'closed']);
         sort($values);
 
         $this->assertEquals(['A', 'B'], $values);
@@ -900,6 +955,77 @@ abstract class IntegrationTest extends TestCase
         $this->assertEquals(['a', 'b'], (array)$doc['tags']);
     }
 
+    public function testIncCreatesField(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
+
+        $this->collection->updateOne(['_id' => '1'], ['$inc' => ['counter' => 2]]);
+        $doc = $this->collection->findOne(['_id' => '1']);
+
+        $this->assertEquals(2, $doc['counter']);
+    }
+
+    public function testInvalidTopLevelOperatorThrows(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
+
+        $this->expectException(RuntimeException::class);
+        $this->collection->find(['$unknown' => ['name' => 'foo']]);
+    }
+
+    public function testInvalidInOperatorThrows(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'age' => 20]);
+
+        $this->expectException(RuntimeException::class);
+        $this->collection->find(['age' => ['$in' => 'not-an-array']]);
+    }
+
+    public function testInvalidModOperatorThrows(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'v' => 10]);
+
+        $this->expectException(RuntimeException::class);
+        $this->collection->find(['v' => ['$mod' => [2]]]);
+    }
+
+    public function testInvalidElemMatchThrows(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'tags' => ['a', 'b']]);
+
+        $this->expectException(RuntimeException::class);
+        $this->collection->find(['tags' => ['$elemMatch' => 'not-an-array']]);
+    }
+
+    public function testUpdateWithoutOperatorsThrows(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
+
+        $this->expectException($this->collection instanceof RangoCollection ? RuntimeException::class : \MongoDB\Exception\InvalidArgumentException::class);
+        $this->collection->updateOne(['_id' => '1'], []);
+    }
+
+    public function testUpsertWithoutIdThrows(): void
+    {
+        if ($this->collection instanceof RangoCollection) {
+            $this->expectException(RuntimeException::class);
+            $this->collection->updateOne(['name' => 'foo'], ['$set' => ['name' => 'bar']], ['upsert' => true]);
+
+            return;
+        }
+
+        $result = $this->collection->updateOne(['name' => 'foo'], ['$set' => ['name' => 'bar']], ['upsert' => true]);
+        $this->assertEquals(1, $result->getUpsertedCount());
+        $this->assertNotNull($result->getUpsertedId());
+    }
+
+    public function testInvalidBitOperatorThrows(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'v' => 10]);
+
+        $this->expectException(RuntimeException::class);
+        $this->collection->updateOne(['_id' => '1'], ['$bit' => ['v' => ['invalid' => 1]]]);
+    }
     public function testElemMatchComplex(): void
     {
         $this->collection->insertMany([
