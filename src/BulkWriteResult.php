@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
-final class BulkWriteResult
+final readonly class BulkWriteResult
 {
     /**
      * @param array<int, mixed> $insertedIds
      * @param array<int, mixed> $upsertedIds
      */
     public function __construct(
-        private readonly int $insertedCount,
-        private readonly int $matchedCount,
-        private readonly int $modifiedCount,
-        private readonly int $deletedCount,
-        private readonly int $upsertedCount,
-        private readonly array $insertedIds,
-        private readonly array $upsertedIds,
+        private int $insertedCount,
+        private int $matchedCount,
+        private int $modifiedCount,
+        private int $deletedCount,
+        private int $upsertedCount,
+        private array $insertedIds,
+        private array $upsertedIds,
     ) {
     }
 

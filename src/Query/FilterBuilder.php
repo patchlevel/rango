@@ -19,10 +19,10 @@ use function sprintf;
 use function str_contains;
 use function str_starts_with;
 
-final class FilterBuilder
+final readonly class FilterBuilder
 {
     public function __construct(
-        private readonly PDO $pdo,
+        private PDO $pdo,
     ) {
     }
 

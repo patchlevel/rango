@@ -15,10 +15,10 @@ use function str_starts_with;
 use function strlen;
 use function substr;
 
-final class ProjectionBuilder
+final readonly class ProjectionBuilder
 {
     public function __construct(
-        private readonly PDO $pdo,
+        private PDO $pdo,
     ) {
     }
 

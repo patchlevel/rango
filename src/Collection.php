@@ -72,8 +72,8 @@ final class Collection
     }
 
     /**
-     * @param list<array<string, mixed>> $documents
-     * @param array<string, mixed>       $options
+     * @param list<TDocument>      $documents
+     * @param array<string, mixed> $options
      */
     public function insertMany(array $documents, array $options = []): InsertManyResult
     {
@@ -81,7 +81,7 @@ final class Collection
     }
 
     /**
-     * @param array<string, mixed> $document
+     * @param TDocument            $document
      * @param array<string, mixed> $options
      */
     public function insertOne(array $document, array $options = []): InsertOneResult
@@ -91,7 +91,7 @@ final class Collection
 
     /**
      * @param array<string, mixed> $filter
-     * @param array<string, mixed> $replacement
+     * @param TDocument            $replacement
      * @param array<string, mixed> $options
      */
     public function replaceOne(array $filter, array $replacement, array $options = []): UpdateResult
@@ -161,7 +161,7 @@ final class Collection
 
     /**
      * @param array<string, mixed> $filter
-     * @param array<string, mixed> $replacement
+     * @param TDocument            $replacement
      * @param array<string, mixed> $options
      *
      * @return TDocument|null

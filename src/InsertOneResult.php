@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
-final class InsertOneResult
+final readonly class InsertOneResult
 {
     public function __construct(
-        private readonly mixed $insertedId,
+        private mixed $insertedId,
     ) {
     }
 

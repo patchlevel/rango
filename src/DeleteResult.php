@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
-final class DeleteResult
+final readonly class DeleteResult
 {
     public function __construct(
-        private readonly int $deletedCount,
+        private int $deletedCount,
     ) {
     }
 

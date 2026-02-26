@@ -24,11 +24,11 @@ use const JSON_THROW_ON_ERROR;
  * @template TDocument of array<string, mixed>
  * @implements IteratorAggregate<int, TDocument>
  */
-class Cursor implements IteratorAggregate, Countable
+final readonly class Cursor implements IteratorAggregate, Countable
 {
     /** @param list<string>|PDOStatement $data */
     public function __construct(
-        private readonly array|PDOStatement $data = [],
+        private array|PDOStatement $data = [],
     ) {
     }
 
@@ -62,24 +62,20 @@ class Cursor implements IteratorAggregate, Countable
         return count($this->data);
     }
 
-    /** @return array<int|string, TDocument> */
+    /** @return list<TDocument> */
     public function toArray(): array
     {
         if ($this->data instanceof PDOStatement) {
-            $data = array_map(
+            return array_map(
                 fn ($item) => $this->decode(is_string($item) ? $item : ''),
                 $this->data->fetchAll(PDO::FETCH_COLUMN),
             );
-
-            return $data;
         }
 
-        $data = array_map(
+        return array_map(
             fn (string $item) => $this->decode($item),
             $this->data,
         );
-
-        return $data;
     }
 
     /** @return array<string, mixed> */

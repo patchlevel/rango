@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
-final class UpdateResult
+final readonly class UpdateResult
 {
     public function __construct(
-        private readonly int $matchedCount,
-        private readonly int $modifiedCount,
-        private readonly mixed $upsertedId = null,
+        private int $matchedCount,
+        private int $modifiedCount,
+        private mixed $upsertedId = null,
     ) {
     }
 

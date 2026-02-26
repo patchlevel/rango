@@ -12,13 +12,21 @@ final class Database
     ) {
     }
 
-    /** @return Collection<array<string, mixed>> */
+    /**
+     * @template TDocument of array<string, mixed>
+     *
+     * @return Collection<TDocument>
+     */
     public function getCollection(string $collectionName): Collection
     {
         return new Collection($this->client, $this->databaseName, $collectionName);
     }
 
-    /** @return Collection<array<string, mixed>> */
+    /**
+     * @template TDocument of array<string, mixed>
+     *
+     * @return Collection<TDocument>
+     */
     public function selectCollection(string $collectionName): Collection
     {
         return $this->getCollection($collectionName);

@@ -21,15 +21,15 @@ use function str_contains;
 use function str_replace;
 
 /** @internal */
-final class QueryBuilder
+final readonly class QueryBuilder
 {
-    private readonly FilterBuilder $filterBuilder;
-    private readonly ProjectionBuilder $projectionBuilder;
-    private readonly UpdateBuilder $updateBuilder;
-    private readonly AggregationBuilder $aggregationBuilder;
+    private FilterBuilder $filterBuilder;
+    private ProjectionBuilder $projectionBuilder;
+    private UpdateBuilder $updateBuilder;
+    private AggregationBuilder $aggregationBuilder;
 
     public function __construct(
-        private readonly PDO $pdo,
+        private PDO $pdo,
     ) {
         $this->filterBuilder = new FilterBuilder($pdo);
         $this->projectionBuilder = new ProjectionBuilder($pdo);

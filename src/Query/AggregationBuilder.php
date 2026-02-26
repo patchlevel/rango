@@ -17,12 +17,12 @@ use function sprintf;
 use function str_replace;
 use function str_starts_with;
 
-final class AggregationBuilder
+final readonly class AggregationBuilder
 {
     public function __construct(
-        private readonly PDO $pdo,
-        private readonly FilterBuilder $filterBuilder,
-        private readonly ProjectionBuilder $projectionBuilder,
+        private PDO $pdo,
+        private FilterBuilder $filterBuilder,
+        private ProjectionBuilder $projectionBuilder,
     ) {
     }
 

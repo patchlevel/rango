@@ -6,11 +6,11 @@ namespace Patchlevel\Rango;
 
 use function count;
 
-final class InsertManyResult
+final readonly class InsertManyResult
 {
     /** @param array<int, mixed> $insertedIds */
     public function __construct(
-        private readonly array $insertedIds,
+        private array $insertedIds,
     ) {
     }
 
