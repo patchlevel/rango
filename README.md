@@ -1,8 +1,6 @@
 # Rango
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/patchlevel/rango.svg?style=flat-square)](https://packagist.org/packages/patchlevel/rango)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/patchlevel/rango/unit.yml?branch=main&label=tests&style=flat-square)](https://github.com/patchlevel/rango/actions)
-[![License](https://img.shields.io/packagist/l/patchlevel/rango.svg?style=flat-square)](https://packagist.org/packages/patchlevel/rango)
+![Rango Logo](/logo.png)
 
 Rango is a high-performance PHP library that reimplements the **MongoDB PHP API** on top of **PostgreSQL** using the power of `JSONB`.
 
