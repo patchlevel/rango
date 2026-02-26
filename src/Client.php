@@ -6,6 +6,7 @@ namespace Patchlevel\Rango;
 
 use Patchlevel\Rango\Sql\Identifier;
 use PDO;
+
 use function sprintf;
 
 final class Client
@@ -33,11 +34,7 @@ final class Client
         return $this->getDatabase($name);
     }
 
-    /**
-     * @template TDocument of array<string, mixed>
-     *
-     * @return Collection<TDocument>
-     */
+    /** @return Collection<array<string, mixed>> */
     public function selectCollection(string $databaseName, string $collectionName): Collection
     {
         return $this->getDatabase($databaseName)->getCollection($collectionName);

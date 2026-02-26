@@ -43,13 +43,13 @@ parameters:
 			path: src/Cursor.php
 
 		-
-			message: '#^Method Patchlevel\\Rango\\Cursor\:\:toArray\(\) should return array\<int\|string, TDocument of array\<string, mixed\>\> but returns array\<array\<string, mixed\>\>\.$#'
+			message: '#^Method Patchlevel\\Rango\\Cursor\:\:toArray\(\) should return list\<TDocument of array\<string, mixed\>\> but returns array\<array\<string, mixed\>\>\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Cursor.php
 
 		-
-			message: '#^Method Patchlevel\\Rango\\Cursor\:\:toArray\(\) should return array\<int\|string, TDocument of array\<string, mixed\>\> but returns list\<array\<string, mixed\>\>\.$#'
+			message: '#^Method Patchlevel\\Rango\\Cursor\:\:toArray\(\) should return list\<TDocument of array\<string, mixed\>\> but returns list\<array\<string, mixed\>\>\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Cursor.php
@@ -335,12 +335,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: src/QueryBuilder.php
-
-		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertNotNull\(\) with MongoDB\\Collection\|Patchlevel\\Rango\\Collection\<array\<string, mixed\>\> will always evaluate to true\.$#'
-			identifier: method.alreadyNarrowedType
-			count: 1
-			path: tests/IntegrationTest.php
 
 		-
 			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertNotNull\(\) with MongoDB\\Database\|Patchlevel\\Rango\\Database will always evaluate to true\.$#'

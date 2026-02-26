@@ -1300,7 +1300,6 @@ abstract class IntegrationTest extends TestCase
         $this->assertNotNull($db);
 
         $col = $db->selectCollection('items');
-        $this->assertNotNull($col);
 
         $col->insertOne(['_id' => 'alias-test', 'name' => 'alias']);
         $doc = $col->findOne(['_id' => 'alias-test']);
