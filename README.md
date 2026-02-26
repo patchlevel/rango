@@ -1,6 +1,8 @@
 # Rango
 
-![Rango Logo](/logo.png)
+<p align="center">
+  <img src="logo.png" width="50%">
+</p>
 
 Rango is a high-performance PHP library that reimplements the **MongoDB PHP API** on top of **PostgreSQL** using the power of `JSONB`.
 
