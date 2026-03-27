@@ -24,13 +24,15 @@ final class CreateCollection implements Operation
     {
         $schema = Identifier::quote($this->database);
         $table = Identifier::quote($this->collection);
-        SqlRunner::exec($pdo, sprintf('CREATE TABLE IF NOT EXISTS %s.%s (data JSONB NOT NULL)', $schema, $table));
-        SqlRunner::exec($pdo, sprintf(
-            "CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s ((data->>'_id'))",
-            Identifier::quote($this->database . '_' . $this->collection . '_id_idx'),
-            $schema,
-            $table,
-        ));
+
+        SqlRunner::exec(
+            $pdo,
+            sprintf(
+                'CREATE TABLE IF NOT EXISTS %s.%s (_id TEXT PRIMARY KEY, data JSONB NOT NULL)',
+                $schema,
+                $table,
+            ),
+        );
 
         return true;
     }

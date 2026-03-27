@@ -23,6 +23,7 @@ final readonly class FilterBuilder
 {
     public function __construct(
         private PDO $pdo,
+        private string|null $idColumn = null,
     ) {
     }
 
@@ -98,6 +99,10 @@ final readonly class FilterBuilder
         }
 
         if ($field === '_id') {
+            if ($this->idColumn !== null) {
+                return sprintf('%s = %s', $this->idColumn, $this->pdo->quote((string)$value));
+            }
+
             return sprintf("%s->>'_id' = %s", $column, $this->pdo->quote((string)$value));
         }
 
@@ -131,6 +136,7 @@ final readonly class FilterBuilder
     private function buildOperatorFilter(string $field, string $operator, mixed $operand, array $allOperators = [], string $column = 'data'): string
     {
         $fieldExpression = $field === '_id' ? sprintf("%s->>'_id'", $column) : sprintf('%s->%s', $column, $this->pdo->quote($field));
+        $idExpression = $this->idColumn ?? sprintf("%s->>'_id'", $column);
 
         if (str_contains($field, '.') && $field !== '_id') {
             $parts = explode('.', $field);
@@ -146,7 +152,7 @@ final readonly class FilterBuilder
 
         if ($operator === '$eq') {
             if ($field === '_id') {
-                return sprintf('%s = %s', $fieldExpression, $this->pdo->quote((string)$operand));
+                return sprintf('%s = %s', $idExpression, $this->pdo->quote((string)$operand));
             }
 
             return sprintf('%s @> %s', $column, $this->pdo->quote(json_encode([$field => $operand])));
@@ -154,7 +160,7 @@ final readonly class FilterBuilder
 
         if ($operator === '$ne') {
             if ($field === '_id') {
-                return sprintf('%s != %s', $fieldExpression, $this->pdo->quote((string)$operand));
+                return sprintf('%s != %s', $idExpression, $this->pdo->quote((string)$operand));
             }
 
             return sprintf('NOT (%s @> %s)', $column, $this->pdo->quote(json_encode([$field => $operand])));
@@ -185,6 +191,15 @@ final readonly class FilterBuilder
                 return 'FALSE';
             }
 
+            if ($field === '_id') {
+                $values = array_map(
+                    fn ($val) => $this->pdo->quote((string)$val),
+                    $operand,
+                );
+
+                return sprintf('(%s) IN (%s)', $idExpression, implode(', ', $values));
+            }
+
             $values = array_map(
                 fn ($val) => sprintf('%s::jsonb', $this->pdo->quote(json_encode($val))),
                 $operand,
@@ -200,6 +215,15 @@ final readonly class FilterBuilder
 
             if (empty($operand)) {
                 return 'TRUE';
+            }
+
+            if ($field === '_id') {
+                $values = array_map(
+                    fn ($val) => $this->pdo->quote((string)$val),
+                    $operand,
+                );
+
+                return sprintf('(%s) NOT IN (%s)', $idExpression, implode(', ', $values));
             }
 
             $values = array_map(
@@ -219,7 +243,7 @@ final readonly class FilterBuilder
         }
 
         if ($operator === '$regex') {
-            $rawFieldExpression = $field === '_id' ? sprintf("%s->>'_id'", $column) : sprintf('%s->>%s', $column, $this->pdo->quote($field));
+            $rawFieldExpression = $field === '_id' ? $idExpression : sprintf('%s->>%s', $column, $this->pdo->quote($field));
 
             $flags = '';
             if (isset($allOperators['$options'])) {

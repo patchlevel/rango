@@ -142,12 +142,16 @@ final readonly class AggregationBuilder
                     }
 
                     $foreignFieldExpression = 'data';
+                    $joinExpression = sprintf('%s = %s', $foreignFieldExpression, $localFieldExpression);
                     if ($foreignField === '_id') {
-                        $foreignFieldExpression = "data->'_id'";
+                        $foreignFieldExpression = '_id';
+                        $joinExpression = sprintf("%s = (%s #>> '{}')", $foreignFieldExpression, $localFieldExpression);
                     } else {
                         foreach (explode('.', $foreignField) as $part) {
                             $foreignFieldExpression = sprintf('%s->%s', $foreignFieldExpression, $this->pdo->quote($part));
                         }
+
+                        $joinExpression = sprintf('%s = %s', $foreignFieldExpression, $localFieldExpression);
                     }
 
                     $currentQuery = sprintf(
@@ -156,13 +160,12 @@ final readonly class AggregationBuilder
                          LEFT JOIN LATERAL (
                              SELECT jsonb_agg(data) AS matches
                              FROM %s
-                             WHERE %s = %s
+                             WHERE %s
                          ) l ON true',
                         $this->pdo->quote($as),
                         $currentQuery,
                         $foreignTable,
-                        $foreignFieldExpression,
-                        $localFieldExpression,
+                        $joinExpression,
                     );
                 }
             }

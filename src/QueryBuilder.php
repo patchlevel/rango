@@ -15,6 +15,7 @@ use RuntimeException;
 use function array_keys;
 use function explode;
 use function implode;
+use function is_scalar;
 use function json_encode;
 use function sprintf;
 use function str_contains;
@@ -31,20 +32,22 @@ final readonly class QueryBuilder
     public function __construct(
         private PDO $pdo,
     ) {
-        $this->filterBuilder = new FilterBuilder($pdo);
+        $this->filterBuilder = new FilterBuilder($pdo, '_id');
         $this->projectionBuilder = new ProjectionBuilder($pdo);
         $this->updateBuilder = new UpdateBuilder($pdo);
-        $this->aggregationBuilder = new AggregationBuilder($pdo, $this->filterBuilder, $this->projectionBuilder);
+        $this->aggregationBuilder = new AggregationBuilder($pdo, new FilterBuilder($pdo), $this->projectionBuilder);
     }
 
     /** @param array<string, mixed> $document */
     public function createInsert(string $database, string $collection, array $document): string
     {
         $table = Identifier::quote($database) . '.' . Identifier::quote($collection);
+        $id = $this->documentId($document);
 
         return sprintf(
-            'INSERT INTO %s (data) VALUES (%s)',
+            'INSERT INTO %s (_id, data) VALUES (%s, %s)',
             $table,
+            $this->pdo->quote($id),
             $this->pdo->quote(json_encode($document)),
         );
     }
@@ -71,7 +74,7 @@ final readonly class QueryBuilder
             foreach ($options['sort'] as $field => $direction) {
                 $dir = $direction === 1 || $direction === 'asc' ? 'ASC' : 'DESC';
                 if ($field === '_id') {
-                    $sortParts[] = sprintf("data->>'_id' %s", $dir);
+                    $sortParts[] = sprintf('_id %s', $dir);
                 } elseif (str_contains($field, '.')) {
                     $parts = explode('.', $field);
                     $expression = 'data';
@@ -112,6 +115,7 @@ final readonly class QueryBuilder
         $where = $this->filterBuilder->buildWhere($filter);
         $updatePlan = $this->updateBuilder->buildUpdateExpression($update);
         $dataExpression = $updatePlan['expression'];
+        $idExpression = sprintf("(%s)->>'_id'", $dataExpression);
 
         if (isset($options['upsert']) && $options['upsert']) {
             if (!isset($filter['_id'])) {
@@ -119,16 +123,19 @@ final readonly class QueryBuilder
             }
 
             $insertData = $this->updateBuilder->buildUpsertDocument($filter, $updatePlan['setData'], $updatePlan['setOnInsertData']);
+            $insertId = $this->documentId($insertData);
 
             return sprintf(
-                'INSERT INTO %s AS t (data) VALUES (%s) ON CONFLICT ((data->>\'_id\')) DO UPDATE SET data = %s',
+                'INSERT INTO %s AS t (_id, data) VALUES (%s, %s) ON CONFLICT (_id) DO UPDATE SET data = %s, _id = %s',
                 $table,
+                $this->pdo->quote($insertId),
                 $this->pdo->quote(json_encode($insertData)),
                 str_replace('data', 't.data', $dataExpression),
+                str_replace('data', 't.data', $idExpression),
             );
         }
 
-        $sql = sprintf('UPDATE %s SET data = %s', $table, $dataExpression);
+        $sql = sprintf('UPDATE %s SET data = %s, _id = %s', $table, $dataExpression, $idExpression);
 
         if ($where) {
             $sql .= ' WHERE ' . $where;
@@ -146,6 +153,9 @@ final readonly class QueryBuilder
     {
         $table = Identifier::quote($database) . '.' . Identifier::quote($collection);
         $where = $this->filterBuilder->buildWhere($filter);
+        $replacementId = $this->documentId($replacement, $filter['_id'] ?? null);
+        $replacementData = $replacement;
+        $replacementData['_id'] = $replacementId;
 
         if (isset($options['upsert']) && $options['upsert']) {
             if (!isset($filter['_id'])) {
@@ -153,13 +163,19 @@ final readonly class QueryBuilder
             }
 
             return sprintf(
-                'INSERT INTO %s (data) VALUES (%s) ON CONFLICT ((data->>\'_id\')) DO UPDATE SET data = EXCLUDED.data',
+                'INSERT INTO %s (_id, data) VALUES (%s, %s) ON CONFLICT (_id) DO UPDATE SET data = EXCLUDED.data, _id = EXCLUDED._id',
                 $table,
-                $this->pdo->quote(json_encode($replacement)),
+                $this->pdo->quote($replacementId),
+                $this->pdo->quote(json_encode($replacementData)),
             );
         }
 
-        $sql = sprintf('UPDATE %s SET data = %s', $table, $this->pdo->quote(json_encode($replacement)));
+        $sql = sprintf(
+            'UPDATE %s SET data = %s, _id = %s',
+            $table,
+            $this->pdo->quote(json_encode($replacementData)),
+            $this->pdo->quote($replacementId),
+        );
 
         if ($where) {
             $sql .= ' WHERE ' . $where;
@@ -240,7 +256,13 @@ final readonly class QueryBuilder
 
         $parts = [];
         foreach ($key as $field => $direction) {
-            $parts[] = sprintf('(data->%s)', $this->pdo->quote($field));
+            $dir = $direction === -1 ? 'DESC' : 'ASC';
+            if ($field === '_id') {
+                $parts[] = sprintf('_id %s', $dir);
+                continue;
+            }
+
+            $parts[] = sprintf('(data->%s) %s', $this->pdo->quote($field), $dir);
         }
 
         return sprintf(
@@ -264,7 +286,13 @@ final readonly class QueryBuilder
     public function createListIndexes(string $database, string $collection): string
     {
         return sprintf(
-            'SELECT indexname as name FROM pg_indexes WHERE schemaname = %s AND tablename = %s',
+            "SELECT i.indexname as name,
+                    ix.indisunique as unique,
+                    i.indexdef as definition
+             FROM pg_indexes i
+             JOIN pg_class c ON c.relname = i.tablename
+             JOIN pg_index ix ON ix.indexrelid = (i.schemaname || '.' || i.indexname)::regclass
+             WHERE i.schemaname = %s AND i.tablename = %s",
             $this->pdo->quote($database),
             $this->pdo->quote($collection),
         );
@@ -291,5 +319,17 @@ final readonly class QueryBuilder
             Identifier::quote($oldName),
             Identifier::quote($newName),
         );
+    }
+
+    /** @param array<string, mixed> $document */
+    private function documentId(array $document, mixed $fallback = null): string
+    {
+        $id = $document['_id'] ?? $fallback;
+
+        if (!is_scalar($id)) {
+            throw new RuntimeException('Document _id must be scalar');
+        }
+
+        return (string)$id;
     }
 }

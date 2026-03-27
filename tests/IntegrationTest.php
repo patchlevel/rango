@@ -8,9 +8,11 @@ use MongoDB\Client as MongoDbClient;
 use MongoDB\Collection as MongoDbCollection;
 use MongoDB\Database as MongoDbDatabase;
 use MongoDB\Exception\InvalidArgumentException;
+use MongoDB\Model\IndexInfo as MongoIndexInfo;
 use Patchlevel\Rango\Client as RangoClient;
 use Patchlevel\Rango\Collection as RangoCollection;
 use Patchlevel\Rango\Database as RangoDatabase;
+use Patchlevel\Rango\Model\IndexInfo;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -44,16 +46,16 @@ abstract class IntegrationTest extends TestCase
     {
         $result = $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
 
-        $this->assertEquals(1, $result->getInsertedCount());
-        $this->assertEquals('1', $result->getInsertedId());
-        $this->assertTrue($result->isAcknowledged());
+        self::assertEquals(1, $result->getInsertedCount());
+        self::assertEquals('1', $result->getInsertedId());
+        self::assertTrue($result->isAcknowledged());
 
         $result = $this->collection->find(['name' => 'foo']);
         $docs = iterator_to_array($result);
 
-        $this->assertCount(1, $docs);
-        $this->assertEquals('1', $docs[0]['_id']);
-        $this->assertEquals('foo', $docs[0]['name']);
+        self::assertCount(1, $docs);
+        self::assertEquals('1', $docs[0]['_id']);
+        self::assertEquals('foo', $docs[0]['name']);
     }
 
     public function testInsertManyAndCount(): void
@@ -63,12 +65,12 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '2', 'name' => 'bar'],
         ]);
 
-        $this->assertEquals(2, $result->getInsertedCount());
-        $this->assertEquals(['1', '2'], $result->getInsertedIds());
-        $this->assertTrue($result->isAcknowledged());
+        self::assertEquals(2, $result->getInsertedCount());
+        self::assertEquals(['1', '2'], $result->getInsertedIds());
+        self::assertTrue($result->isAcknowledged());
 
-        $this->assertEquals(2, $this->collection->countDocuments());
-        $this->assertEquals(1, $this->collection->countDocuments(['name' => 'foo']));
+        self::assertEquals(2, $this->collection->countDocuments());
+        self::assertEquals(1, $this->collection->countDocuments(['name' => 'foo']));
     }
 
     public function testFindOne(): void
@@ -77,16 +79,16 @@ abstract class IntegrationTest extends TestCase
 
         $doc = $this->collection->findOne(['_id' => '1']);
 
-        $this->assertNotNull($doc);
-        $this->assertEquals('1', $doc['_id']);
-        $this->assertEquals('foo', $doc['name']);
+        self::assertNotNull($doc);
+        self::assertEquals('1', $doc['_id']);
+        self::assertEquals('foo', $doc['name']);
     }
 
     public function testFindOneNotFound(): void
     {
         $doc = $this->collection->findOne(['_id' => 'missing']);
 
-        $this->assertNull($doc);
+        self::assertNull($doc);
     }
 
     public function testUpdateOne(): void
@@ -94,27 +96,27 @@ abstract class IntegrationTest extends TestCase
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
         $result = $this->collection->updateOne(['_id' => '1'], ['$set' => ['name' => 'bar']]);
 
-        $this->assertEquals(1, $result->getMatchedCount());
-        $this->assertEquals(1, $result->getModifiedCount());
-        $this->assertTrue($result->isAcknowledged());
+        self::assertEquals(1, $result->getMatchedCount());
+        self::assertEquals(1, $result->getModifiedCount());
+        self::assertTrue($result->isAcknowledged());
 
         $doc = $this->collection->findOne(['_id' => '1']);
 
-        $this->assertNotNull($doc);
-        $this->assertEquals('bar', $doc['name']);
+        self::assertNotNull($doc);
+        self::assertEquals('bar', $doc['name']);
     }
 
     public function testDeleteOne(): void
     {
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
-        $this->assertEquals(1, $this->collection->countDocuments());
+        self::assertEquals(1, $this->collection->countDocuments());
 
         $result = $this->collection->deleteOne(['_id' => '1']);
 
-        $this->assertEquals(1, $result->getDeletedCount());
-        $this->assertTrue($result->isAcknowledged());
+        self::assertEquals(1, $result->getDeletedCount());
+        self::assertTrue($result->isAcknowledged());
 
-        $this->assertEquals(0, $this->collection->countDocuments());
+        self::assertEquals(0, $this->collection->countDocuments());
     }
 
     public function testSort(): void
@@ -127,15 +129,15 @@ abstract class IntegrationTest extends TestCase
 
         $result = $this->collection->find([], ['sort' => ['name' => 1]]);
         $docs = array_values(iterator_to_array($result));
-        $this->assertEquals('2', $docs[0]['_id']);
-        $this->assertEquals('1', $docs[1]['_id']);
-        $this->assertEquals('3', $docs[2]['_id']);
+        self::assertEquals('2', $docs[0]['_id']);
+        self::assertEquals('1', $docs[1]['_id']);
+        self::assertEquals('3', $docs[2]['_id']);
 
         $result = $this->collection->find([], ['sort' => ['name' => -1]]);
         $docs = array_values(iterator_to_array($result));
-        $this->assertEquals('3', $docs[0]['_id']);
-        $this->assertEquals('1', $docs[1]['_id']);
-        $this->assertEquals('2', $docs[2]['_id']);
+        self::assertEquals('3', $docs[0]['_id']);
+        self::assertEquals('1', $docs[1]['_id']);
+        self::assertEquals('2', $docs[2]['_id']);
     }
 
     public function testProjection(): void
@@ -143,14 +145,14 @@ abstract class IntegrationTest extends TestCase
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo', 'age' => 42]);
 
         $doc = $this->collection->findOne(['_id' => '1'], ['projection' => ['name' => 1]]);
-        $this->assertArrayHasKey('name', $doc);
-        $this->assertArrayHasKey('_id', $doc);
-        $this->assertArrayNotHasKey('age', $doc);
+        self::assertArrayHasKey('name', $doc);
+        self::assertArrayHasKey('_id', $doc);
+        self::assertArrayNotHasKey('age', $doc);
 
         $doc = $this->collection->findOne(['_id' => '1'], ['projection' => ['age' => 0]]);
-        $this->assertArrayHasKey('name', $doc);
-        $this->assertArrayHasKey('_id', $doc);
-        $this->assertArrayNotHasKey('age', $doc);
+        self::assertArrayHasKey('name', $doc);
+        self::assertArrayHasKey('_id', $doc);
+        self::assertArrayNotHasKey('age', $doc);
     }
 
     public function testProjectionExcludeId(): void
@@ -158,9 +160,9 @@ abstract class IntegrationTest extends TestCase
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo', 'age' => 42]);
 
         $doc = $this->collection->findOne(['_id' => '1'], ['projection' => ['name' => 1, '_id' => 0]]);
-        $this->assertArrayHasKey('name', $doc);
-        $this->assertArrayNotHasKey('_id', $doc);
-        $this->assertArrayNotHasKey('age', $doc);
+        self::assertArrayHasKey('name', $doc);
+        self::assertArrayNotHasKey('_id', $doc);
+        self::assertArrayNotHasKey('age', $doc);
     }
 
     public function testProjectionExcludeNested(): void
@@ -172,10 +174,10 @@ abstract class IntegrationTest extends TestCase
 
         $doc = $this->collection->findOne(['_id' => '1'], ['projection' => ['profile.stats.score' => 0]]);
 
-        $this->assertArrayHasKey('profile', $doc);
-        $this->assertArrayHasKey('stats', $doc['profile']);
-        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
-        $this->assertEquals(2, $doc['profile']['stats']['level']);
+        self::assertArrayHasKey('profile', $doc);
+        self::assertArrayHasKey('stats', $doc['profile']);
+        self::assertArrayNotHasKey('score', $doc['profile']['stats']);
+        self::assertEquals(2, $doc['profile']['stats']['level']);
     }
 
     public function testReplaceOne(): void
@@ -183,12 +185,12 @@ abstract class IntegrationTest extends TestCase
         $this->collection->insertOne(['_id' => '1', 'name' => 'foo', 'age' => 42]);
         $result = $this->collection->replaceOne(['_id' => '1'], ['_id' => '1', 'name' => 'bar']);
 
-        $this->assertEquals(1, $result->getMatchedCount());
-        $this->assertEquals(1, $result->getModifiedCount());
+        self::assertEquals(1, $result->getMatchedCount());
+        self::assertEquals(1, $result->getModifiedCount());
 
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals('bar', $doc['name']);
-        $this->assertArrayNotHasKey('age', $doc);
+        self::assertEquals('bar', $doc['name']);
+        self::assertArrayNotHasKey('age', $doc);
     }
 
     public function testIncAndUnset(): void
@@ -197,12 +199,12 @@ abstract class IntegrationTest extends TestCase
 
         $this->collection->updateOne(['_id' => '1'], ['$inc' => ['age' => 1]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(43, $doc['age']);
+        self::assertEquals(43, $doc['age']);
 
         $this->collection->updateOne(['_id' => '1'], ['$unset' => ['name' => '']]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertArrayNotHasKey('name', $doc);
-        $this->assertEquals(43, $doc['age']);
+        self::assertArrayNotHasKey('name', $doc);
+        self::assertEquals(43, $doc['age']);
     }
 
     public function testComparisonOperators(): void
@@ -213,13 +215,13 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '3', 'age' => 40],
         ]);
 
-        $this->assertCount(2, iterator_to_array($this->collection->find(['age' => ['$gt' => 20]])));
-        $this->assertCount(3, iterator_to_array($this->collection->find(['age' => ['$gte' => 20]])));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['age' => ['$lt' => 30]])));
-        $this->assertCount(2, iterator_to_array($this->collection->find(['age' => ['$lte' => 30]])));
-        $this->assertCount(2, iterator_to_array($this->collection->find(['age' => ['$ne' => 30]])));
-        $this->assertCount(2, iterator_to_array($this->collection->find(['age' => ['$in' => [20, 40]]])));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['age' => ['$nin' => [20, 40]]])));
+        self::assertCount(2, iterator_to_array($this->collection->find(['age' => ['$gt' => 20]])));
+        self::assertCount(3, iterator_to_array($this->collection->find(['age' => ['$gte' => 20]])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['age' => ['$lt' => 30]])));
+        self::assertCount(2, iterator_to_array($this->collection->find(['age' => ['$lte' => 30]])));
+        self::assertCount(2, iterator_to_array($this->collection->find(['age' => ['$ne' => 30]])));
+        self::assertCount(2, iterator_to_array($this->collection->find(['age' => ['$in' => [20, 40]]])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['age' => ['$nin' => [20, 40]]])));
     }
 
     public function testInAndNinEmpty(): void
@@ -229,8 +231,8 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '2', 'age' => 30],
         ]);
 
-        $this->assertCount(0, iterator_to_array($this->collection->find(['age' => ['$in' => []]])));
-        $this->assertCount(2, iterator_to_array($this->collection->find(['age' => ['$nin' => []]])));
+        self::assertCount(0, iterator_to_array($this->collection->find(['age' => ['$in' => []]])));
+        self::assertCount(2, iterator_to_array($this->collection->find(['age' => ['$nin' => []]])));
     }
 
     public function testLogicalOperators(): void
@@ -241,28 +243,28 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '3', 'name' => 'foo', 'age' => 40],
         ]);
 
-        $this->assertCount(1, iterator_to_array($this->collection->find([
+        self::assertCount(1, iterator_to_array($this->collection->find([
             '$and' => [
                 ['name' => 'foo'],
                 ['age' => ['$gt' => 20]],
             ],
         ])));
 
-        $this->assertCount(2, iterator_to_array($this->collection->find([
+        self::assertCount(2, iterator_to_array($this->collection->find([
             '$or' => [
                 ['name' => 'bar'],
                 ['age' => 40],
             ],
         ])));
 
-        $this->assertCount(0, iterator_to_array($this->collection->find([
+        self::assertCount(0, iterator_to_array($this->collection->find([
             '$nor' => [
                 ['name' => 'foo'],
                 ['age' => 30],
             ],
         ])));
 
-        $this->assertCount(2, iterator_to_array($this->collection->find([
+        self::assertCount(2, iterator_to_array($this->collection->find([
             'name' => ['$not' => ['$eq' => 'bar']],
         ])));
     }
@@ -274,8 +276,8 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '2', 'age' => 30],
         ]);
 
-        $this->assertCount(1, iterator_to_array($this->collection->find(['name' => ['$exists' => true]])));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['name' => ['$exists' => false]])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['name' => ['$exists' => true]])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['name' => ['$exists' => false]])));
     }
 
     public function testExistsWithNull(): void
@@ -286,29 +288,29 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '3', 'age' => 30],
         ]);
 
-        $this->assertCount(2, iterator_to_array($this->collection->find(['name' => ['$exists' => true]])));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['name' => ['$exists' => false]])));
+        self::assertCount(2, iterator_to_array($this->collection->find(['name' => ['$exists' => true]])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['name' => ['$exists' => false]])));
     }
 
     public function testUpsert(): void
     {
         $result = $this->collection->updateOne(['_id' => '1'], ['$set' => ['name' => 'foo']], ['upsert' => true]);
-        $this->assertEquals(0, $result->getMatchedCount());
-        $this->assertEquals(1, $result->getUpsertedCount());
-        $this->assertEquals('1', $result->getUpsertedId());
+        self::assertEquals(0, $result->getMatchedCount());
+        self::assertEquals(1, $result->getUpsertedCount());
+        self::assertEquals('1', $result->getUpsertedId());
 
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertNotNull($doc);
-        $this->assertEquals('foo', $doc['name']);
+        self::assertNotNull($doc);
+        self::assertEquals('foo', $doc['name']);
 
         $result = $this->collection->replaceOne(['_id' => '2'], ['_id' => '2', 'name' => 'bar'], ['upsert' => true]);
-        $this->assertEquals(0, $result->getMatchedCount());
-        $this->assertEquals(1, $result->getUpsertedCount());
-        $this->assertEquals('2', $result->getUpsertedId());
+        self::assertEquals(0, $result->getMatchedCount());
+        self::assertEquals(1, $result->getUpsertedCount());
+        self::assertEquals('2', $result->getUpsertedId());
 
         $doc = $this->collection->findOne(['_id' => '2']);
-        $this->assertNotNull($doc);
-        $this->assertEquals('bar', $doc['name']);
+        self::assertNotNull($doc);
+        self::assertEquals('bar', $doc['name']);
     }
 
     public function testAggregate(): void
@@ -328,9 +330,9 @@ abstract class IntegrationTest extends TestCase
         $result = $this->collection->aggregate($pipeline);
         $docs = array_map(static fn ($doc) => (array)$doc, iterator_to_array($result));
 
-        $this->assertCount(2, $docs);
-        $this->assertEquals(['name' => 'foo'], $docs[0]);
-        $this->assertEquals(['name' => 'foo'], $docs[1]);
+        self::assertCount(2, $docs);
+        self::assertEquals(['name' => 'foo'], $docs[0]);
+        self::assertEquals(['name' => 'foo'], $docs[1]);
     }
 
     public function testUnwind(): void
@@ -347,10 +349,10 @@ abstract class IntegrationTest extends TestCase
         $result = $this->collection->aggregate($pipeline);
         $docs = array_values(iterator_to_array($result));
 
-        $this->assertCount(3, $docs);
-        $this->assertEquals('a', $docs[0]['items']);
-        $this->assertEquals('b', $docs[1]['items']);
-        $this->assertEquals('c', $docs[2]['items']);
+        self::assertCount(3, $docs);
+        self::assertEquals('a', $docs[0]['items']);
+        self::assertEquals('b', $docs[1]['items']);
+        self::assertEquals('c', $docs[2]['items']);
     }
 
     public function testGroup(): void
@@ -375,14 +377,14 @@ abstract class IntegrationTest extends TestCase
         $result = $this->collection->aggregate($pipeline);
         $docs = array_values(iterator_to_array($result));
 
-        $this->assertCount(2, $docs);
-        $this->assertEquals('A', $docs[0]['_id']);
-        $this->assertEquals(40, $docs[0]['total']);
-        $this->assertEquals(2, $docs[0]['count']);
+        self::assertCount(2, $docs);
+        self::assertEquals('A', $docs[0]['_id']);
+        self::assertEquals(40, $docs[0]['total']);
+        self::assertEquals(2, $docs[0]['count']);
 
-        $this->assertEquals('B', $docs[1]['_id']);
-        $this->assertEquals(20, $docs[1]['total']);
-        $this->assertEquals(1, $docs[1]['count']);
+        self::assertEquals('B', $docs[1]['_id']);
+        self::assertEquals(20, $docs[1]['total']);
+        self::assertEquals(1, $docs[1]['count']);
     }
 
     public function testFindOneAndModify(): void
@@ -391,21 +393,21 @@ abstract class IntegrationTest extends TestCase
 
         // findOneAndUpdate
         $old = $this->collection->findOneAndUpdate(['_id' => '1'], ['$inc' => ['counter' => 1]]);
-        $this->assertEquals(10, $old['counter']);
+        self::assertEquals(10, $old['counter']);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(11, $doc['counter']);
+        self::assertEquals(11, $doc['counter']);
 
         // findOneAndReplace
         $old = $this->collection->findOneAndReplace(['_id' => '1'], ['_id' => '1', 'name' => 'bar']);
-        $this->assertEquals('foo', $old['name']);
+        self::assertEquals('foo', $old['name']);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals('bar', $doc['name']);
-        $this->assertArrayNotHasKey('counter', $doc);
+        self::assertEquals('bar', $doc['name']);
+        self::assertArrayNotHasKey('counter', $doc);
 
         // findOneAndDelete
         $old = $this->collection->findOneAndDelete(['_id' => '1']);
-        $this->assertEquals('bar', $old['name']);
-        $this->assertEquals(0, $this->collection->countDocuments());
+        self::assertEquals('bar', $old['name']);
+        self::assertEquals(0, $this->collection->countDocuments());
     }
 
     public function testRenameMinMax(): void
@@ -414,24 +416,24 @@ abstract class IntegrationTest extends TestCase
 
         $this->collection->updateOne(['_id' => '1'], ['$rename' => ['name' => 'nickname']]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertArrayNotHasKey('name', $doc);
-        $this->assertEquals('foo', $doc['nickname']);
+        self::assertArrayNotHasKey('name', $doc);
+        self::assertEquals('foo', $doc['nickname']);
 
         $this->collection->updateOne(['_id' => '1'], ['$min' => ['val' => 25]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(25, $doc['val']);
+        self::assertEquals(25, $doc['val']);
 
         $this->collection->updateOne(['_id' => '1'], ['$min' => ['val' => 75]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(25, $doc['val']); // Should stay 25
+        self::assertEquals(25, $doc['val']); // Should stay 25
 
         $this->collection->updateOne(['_id' => '1'], ['$max' => ['val' => 100]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(100, $doc['val']);
+        self::assertEquals(100, $doc['val']);
 
         $this->collection->updateOne(['_id' => '1'], ['$max' => ['val' => 50]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(100, $doc['val']); // Should stay 100
+        self::assertEquals(100, $doc['val']); // Should stay 100
     }
 
     public function testDistinct(): void
@@ -445,7 +447,7 @@ abstract class IntegrationTest extends TestCase
         $values = $this->collection->distinct('category');
         sort($values);
 
-        $this->assertEquals(['A', 'B'], $values);
+        self::assertEquals(['A', 'B'], $values);
     }
 
     public function testDistinctWithFilter(): void
@@ -459,7 +461,7 @@ abstract class IntegrationTest extends TestCase
         $values = $this->collection->distinct('category', ['status' => 'closed']);
         sort($values);
 
-        $this->assertEquals(['A', 'B'], $values);
+        self::assertEquals(['A', 'B'], $values);
     }
 
     public function testPushAndPull(): void
@@ -468,11 +470,11 @@ abstract class IntegrationTest extends TestCase
 
         $this->collection->updateOne(['_id' => '1'], ['$push' => ['tags' => 'bar']]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(['foo', 'bar'], (array)$doc['tags']);
+        self::assertEquals(['foo', 'bar'], (array)$doc['tags']);
 
         $this->collection->updateOne(['_id' => '1'], ['$pull' => ['tags' => 'foo']]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(['bar'], (array)$doc['tags']);
+        self::assertEquals(['bar'], (array)$doc['tags']);
     }
 
     public function testRegex(): void
@@ -483,9 +485,9 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '3', 'name' => 'Cherry'],
         ]);
 
-        $this->assertCount(1, iterator_to_array($this->collection->find(['name' => ['$regex' => '^App']])));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['name' => ['$regex' => 'ana']])));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['name' => ['$regex' => '^apple', '$options' => 'i']])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['name' => ['$regex' => '^App']])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['name' => ['$regex' => 'ana']])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['name' => ['$regex' => '^apple', '$options' => 'i']])));
     }
 
     public function testAllAndSize(): void
@@ -496,9 +498,9 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '3', 'tags' => ['bar']],
         ]);
 
-        $this->assertCount(1, iterator_to_array($this->collection->find(['tags' => ['$all' => ['foo', 'bar']]])));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['tags' => ['$size' => 1]])));
-        $this->assertCount(2, iterator_to_array($this->collection->find(['tags' => ['$size' => 2]])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['tags' => ['$all' => ['foo', 'bar']]])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['tags' => ['$size' => 1]])));
+        self::assertCount(2, iterator_to_array($this->collection->find(['tags' => ['$size' => 2]])));
     }
 
     public function testAddToSet(): void
@@ -509,13 +511,13 @@ abstract class IntegrationTest extends TestCase
         $doc = $this->collection->findOne(['_id' => '1']);
         $tags = (array)$doc['tags'];
         sort($tags);
-        $this->assertEquals(['bar', 'foo'], $tags);
+        self::assertEquals(['bar', 'foo'], $tags);
 
         $this->collection->updateOne(['_id' => '1'], ['$addToSet' => ['tags' => 'foo']]);
         $doc = $this->collection->findOne(['_id' => '1']);
         $tags = (array)$doc['tags'];
         sort($tags);
-        $this->assertEquals(['bar', 'foo'], $tags); // Should still be ['bar', 'foo']
+        self::assertEquals(['bar', 'foo'], $tags); // Should still be ['bar', 'foo']
     }
 
     public function testPop(): void
@@ -524,11 +526,11 @@ abstract class IntegrationTest extends TestCase
 
         $this->collection->updateOne(['_id' => '1'], ['$pop' => ['tags' => 1]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(['a', 'b'], (array)$doc['tags']);
+        self::assertEquals(['a', 'b'], (array)$doc['tags']);
 
         $this->collection->updateOne(['_id' => '1'], ['$pop' => ['tags' => -1]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(['b'], (array)$doc['tags']);
+        self::assertEquals(['b'], (array)$doc['tags']);
     }
 
     public function testType(): void
@@ -543,12 +545,12 @@ abstract class IntegrationTest extends TestCase
         ]);
 
         $docs = iterator_to_array($this->collection->find(['v' => ['$type' => 'string']]));
-        $this->assertCount(1, $docs, 'Failed for type string: ' . json_encode($docs));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'number']])), 'Failed for type number');
-        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'array']])), 'Failed for type array');
-        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'object']])), 'Failed for type object');
-        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'bool']])), 'Failed for type bool');
-        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'null']])), 'Failed for type null');
+        self::assertCount(1, $docs, 'Failed for type string: ' . json_encode($docs));
+        self::assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'number']])), 'Failed for type number');
+        self::assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'array']])), 'Failed for type array');
+        self::assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'object']])), 'Failed for type object');
+        self::assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'bool']])), 'Failed for type bool');
+        self::assertCount(1, iterator_to_array($this->collection->find(['v' => ['$type' => 'null']])), 'Failed for type null');
     }
 
     public function testMod(): void
@@ -559,8 +561,8 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '3', 'v' => 12],
         ]);
 
-        $this->assertCount(2, iterator_to_array($this->collection->find(['v' => ['$mod' => [2, 0]]])));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['v' => ['$mod' => [2, 1]]])));
+        self::assertCount(2, iterator_to_array($this->collection->find(['v' => ['$mod' => [2, 0]]])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['v' => ['$mod' => [2, 1]]])));
     }
 
     public function testMoreAccumulators(): void
@@ -588,13 +590,13 @@ abstract class IntegrationTest extends TestCase
         $result = $this->collection->aggregate($pipeline);
         $docs = array_values(iterator_to_array($result));
 
-        $this->assertCount(2, $docs);
-        $this->assertEquals('A', $docs[0]['_id']);
-        $this->assertEquals(20, $docs[0]['avg']);
-        $this->assertEquals(10, $docs[0]['min']);
-        $this->assertEquals(30, $docs[0]['max']);
-        $this->assertEquals(10, $docs[0]['first']);
-        $this->assertEquals(30, $docs[0]['last']);
+        self::assertCount(2, $docs);
+        self::assertEquals('A', $docs[0]['_id']);
+        self::assertEquals(20, $docs[0]['avg']);
+        self::assertEquals(10, $docs[0]['min']);
+        self::assertEquals(30, $docs[0]['max']);
+        self::assertEquals(10, $docs[0]['first']);
+        self::assertEquals(30, $docs[0]['last']);
     }
 
     public function testLookup(): void
@@ -632,14 +634,14 @@ abstract class IntegrationTest extends TestCase
         $result = $orders->aggregate($pipeline);
         $docs = array_values(iterator_to_array($result));
 
-        $this->assertCount(3, $docs);
-        $this->assertEquals('o1', $docs[0]['_id']);
-        $this->assertCount(1, $docs[0]['product_details']);
-        $this->assertEquals('Laptop', $docs[0]['product_details'][0]['name']);
+        self::assertCount(3, $docs);
+        self::assertEquals('o1', $docs[0]['_id']);
+        self::assertCount(1, $docs[0]['product_details']);
+        self::assertEquals('Laptop', $docs[0]['product_details'][0]['name']);
 
-        $this->assertEquals('o2', $docs[1]['_id']);
-        $this->assertCount(1, $docs[1]['product_details']);
-        $this->assertEquals('Mouse', $docs[1]['product_details'][0]['name']);
+        self::assertEquals('o2', $docs[1]['_id']);
+        self::assertCount(1, $docs[1]['product_details']);
+        self::assertEquals('Mouse', $docs[1]['product_details'][0]['name']);
     }
 
     public function testCurrentDate(): void
@@ -648,8 +650,8 @@ abstract class IntegrationTest extends TestCase
         $this->collection->updateOne(['_id' => '1'], ['$currentDate' => ['lastModified' => true]]);
 
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertArrayHasKey('lastModified', $doc);
-        $this->assertNotEmpty($doc['lastModified']);
+        self::assertArrayHasKey('lastModified', $doc);
+        self::assertNotEmpty($doc['lastModified']);
     }
 
     public function testBitOperator(): void
@@ -659,17 +661,17 @@ abstract class IntegrationTest extends TestCase
         // AND: 1010 & 1100 (12) = 1000 (8)
         $this->collection->updateOne(['_id' => '1'], ['$bit' => ['v' => ['and' => 12]]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(8, $doc['v']);
+        self::assertEquals(8, $doc['v']);
 
         // OR: 1000 | 0101 (5) = 1101 (13)
         $this->collection->updateOne(['_id' => '1'], ['$bit' => ['v' => ['or' => 5]]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(13, $doc['v']);
+        self::assertEquals(13, $doc['v']);
 
         // XOR: 1101 ^ 0111 (7) = 1010 (10)
         $this->collection->updateOne(['_id' => '1'], ['$bit' => ['v' => ['xor' => 7]]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(10, $doc['v']);
+        self::assertEquals(10, $doc['v']);
     }
 
     public function testBulkWrite(): void
@@ -681,16 +683,16 @@ abstract class IntegrationTest extends TestCase
             ['deleteOne' => [['_id' => '2']]],
         ]);
 
-        $this->assertEquals(2, $result->getInsertedCount());
-        $this->assertEquals(1, $result->getMatchedCount());
-        $this->assertEquals(1, $result->getModifiedCount());
-        $this->assertEquals(1, $result->getDeletedCount());
-        $this->assertEquals(['1', '2'], $result->getInsertedIds());
-        $this->assertTrue($result->isAcknowledged());
+        self::assertEquals(2, $result->getInsertedCount());
+        self::assertEquals(1, $result->getMatchedCount());
+        self::assertEquals(1, $result->getModifiedCount());
+        self::assertEquals(1, $result->getDeletedCount());
+        self::assertEquals(['1', '2'], $result->getInsertedIds());
+        self::assertTrue($result->isAcknowledged());
 
-        $this->assertEquals(1, $this->collection->countDocuments());
+        self::assertEquals(1, $this->collection->countDocuments());
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(10, $doc['v']);
+        self::assertEquals(10, $doc['v']);
     }
 
     public function testUpdateMany(): void
@@ -703,10 +705,10 @@ abstract class IntegrationTest extends TestCase
 
         $result = $this->collection->updateMany(['active' => false], ['$set' => ['active' => true]]);
 
-        $this->assertEquals(2, $result->getMatchedCount());
-        $this->assertEquals(2, $result->getModifiedCount());
+        self::assertEquals(2, $result->getMatchedCount());
+        self::assertEquals(2, $result->getModifiedCount());
 
-        $this->assertEquals(3, $this->collection->countDocuments(['active' => true]));
+        self::assertEquals(3, $this->collection->countDocuments(['active' => true]));
     }
 
     public function testDeleteMany(): void
@@ -719,9 +721,9 @@ abstract class IntegrationTest extends TestCase
 
         $result = $this->collection->deleteMany(['name' => 'foo']);
 
-        $this->assertEquals(2, $result->getDeletedCount());
+        self::assertEquals(2, $result->getDeletedCount());
 
-        $this->assertEquals(1, $this->collection->countDocuments());
+        self::assertEquals(1, $this->collection->countDocuments());
     }
 
     public function testFindWithLimitAndSkip(): void
@@ -737,27 +739,27 @@ abstract class IntegrationTest extends TestCase
         $result = $this->collection->find([], ['sort' => ['v' => 1], 'limit' => 2, 'skip' => 1]);
         $docs = array_values(iterator_to_array($result));
 
-        $this->assertCount(2, $docs);
-        $this->assertEquals(2, $docs[0]['v']);
-        $this->assertEquals(3, $docs[1]['v']);
+        self::assertCount(2, $docs);
+        self::assertEquals(2, $docs[0]['v']);
+        self::assertEquals(3, $docs[1]['v']);
     }
 
     public function testGetInsertedId(): void
     {
         $result = $this->collection->insertOne(['_id' => '1', 'name' => 'foo']);
-        $this->assertEquals('1', $result->getInsertedId());
+        self::assertEquals('1', $result->getInsertedId());
     }
 
     public function testImplicitId(): void
     {
         $result = $this->collection->insertOne(['name' => 'foo']);
         $id = $result->getInsertedId();
-        $this->assertNotNull($id);
+        self::assertNotNull($id);
 
         $doc = $this->collection->findOne(['_id' => $id]);
-        $this->assertNotNull($doc);
-        $this->assertEquals('foo', $doc['name']);
-        $this->assertEquals($id, $doc['_id']);
+        self::assertNotNull($doc);
+        self::assertEquals('foo', $doc['name']);
+        self::assertEquals($id, $doc['_id']);
     }
 
     public function testImplicitIdMany(): void
@@ -767,20 +769,20 @@ abstract class IntegrationTest extends TestCase
             ['name' => 'bar'],
         ]);
 
-        $this->assertEquals(2, $result->getInsertedCount());
+        self::assertEquals(2, $result->getInsertedCount());
         $insertedIds = $result->getInsertedIds();
-        $this->assertCount(2, $insertedIds);
+        self::assertCount(2, $insertedIds);
 
-        $this->assertEquals(2, $this->collection->countDocuments());
+        self::assertEquals(2, $this->collection->countDocuments());
 
         $docs = iterator_to_array($this->collection->find());
-        $this->assertCount(2, $docs);
-        $this->assertArrayHasKey('_id', $docs[0]);
-        $this->assertArrayHasKey('_id', $docs[1]);
-        $this->assertNotEquals($docs[0]['_id'], $docs[1]['_id']);
+        self::assertCount(2, $docs);
+        self::assertArrayHasKey('_id', $docs[0]);
+        self::assertArrayHasKey('_id', $docs[1]);
+        self::assertNotEquals($docs[0]['_id'], $docs[1]['_id']);
 
-        $this->assertContains((string)$docs[0]['_id'], array_map(static fn ($id) => (string)$id, $insertedIds));
-        $this->assertContains((string)$docs[1]['_id'], array_map(static fn ($id) => (string)$id, $insertedIds));
+        self::assertContains((string)$docs[0]['_id'], array_map(static fn ($id) => (string)$id, $insertedIds));
+        self::assertContains((string)$docs[1]['_id'], array_map(static fn ($id) => (string)$id, $insertedIds));
     }
 
     public function testAggregateWithLimitAndSkip(): void
@@ -802,23 +804,57 @@ abstract class IntegrationTest extends TestCase
         $result = $this->collection->aggregate($pipeline);
         $docs = array_values(iterator_to_array($result));
 
-        $this->assertCount(2, $docs);
-        $this->assertEquals(3, $docs[0]['v']);
-        $this->assertEquals(4, $docs[1]['v']);
+        self::assertCount(2, $docs);
+        self::assertEquals(3, $docs[0]['v']);
+        self::assertEquals(4, $docs[1]['v']);
     }
 
     public function testIndexManagement(): void
     {
         $this->collection->createIndex(['name' => 1], ['unique' => true, 'name' => 'custom_idx']);
-        $indexes = $this->collection->listIndexes();
+        $indexes = iterator_to_array($this->collection->listIndexes());
 
-        $names = array_map(static fn ($index) => (is_array($index) ? $index['name'] : $index->getName()), is_array($indexes) ? $indexes : iterator_to_array($indexes));
-        $this->assertContains('custom_idx', $names);
+        $names = array_map(static fn (IndexInfo|MongoIndexInfo $index) => $index->getName(), $indexes);
+        self::assertContains('custom_idx', $names);
+
+        // Find the created index
+        $customIndex = null;
+        foreach ($indexes as $index) {
+            if ($index->getName() === 'custom_idx') {
+                $customIndex = $index;
+                break;
+            }
+        }
+
+        self::assertNotNull($customIndex);
+        self::assertTrue($customIndex->isUnique());
+        self::assertEquals(['name' => 1], $customIndex->getKey());
 
         $this->collection->dropIndex('custom_idx');
         $indexes = $this->collection->listIndexes();
-        $names = array_map(static fn ($index) => (is_array($index) ? $index['name'] : $index->getName()), is_array($indexes) ? $indexes : iterator_to_array($indexes));
-        $this->assertNotContains('custom_idx', $names);
+        $names = array_map(static fn (IndexInfo|MongoIndexInfo $index) => $index->getName(), iterator_to_array($indexes));
+        self::assertNotContains('custom_idx', $names);
+    }
+
+    public function testIndexWithNestedFields(): void
+    {
+        $this->collection->createIndex(['address.street' => 1, 'address.city' => -1], ['name' => 'address_idx']);
+        $indexes = iterator_to_array($this->collection->listIndexes());
+
+        $addressIndex = null;
+        foreach ($indexes as $index) {
+            if ($index->getName() === 'address_idx') {
+                $addressIndex = $index;
+                break;
+            }
+        }
+
+        self::assertNotNull($addressIndex, 'address_idx should exist');
+
+        $keys = $addressIndex->getKey();
+        self::assertEquals(['address.street' => 1, 'address.city' => -1], $keys);
+
+        $this->collection->dropIndex('address_idx');
     }
 
     public function testListCollections(): void
@@ -828,7 +864,7 @@ abstract class IntegrationTest extends TestCase
         $collections = $database->listCollections();
 
         $names = array_map(static fn ($col) => (is_array($col) ? $col['name'] : $col->getName()), is_array($collections) ? $collections : iterator_to_array($collections));
-        $this->assertContains('items', $names);
+        self::assertContains('items', $names);
     }
 
     public function testRenameCollection(): void
@@ -840,8 +876,8 @@ abstract class IntegrationTest extends TestCase
         $collections = $database->listCollections();
         $names = array_map(static fn ($col) => (is_array($col) ? $col['name'] : $col->getName()), is_array($collections) ? $collections : iterator_to_array($collections));
 
-        $this->assertContains('items_new', $names);
-        $this->assertNotContains('items', $names);
+        self::assertContains('items_new', $names);
+        self::assertNotContains('items', $names);
 
         // Cleanup
         $database->renameCollection('items_new', 'items');
@@ -872,15 +908,15 @@ abstract class IntegrationTest extends TestCase
             ],
         ]));
 
-        $this->assertCount(1, $docs);
-        $this->assertEquals('1', $docs[0]['_id']);
+        self::assertCount(1, $docs);
+        self::assertEquals('1', $docs[0]['_id']);
 
         $docs = iterator_to_array($this->collection->find([
             'results' => [
                 '$elemMatch' => ['product' => 'abc', 'score' => ['$gt' => 5]],
             ],
         ]));
-        $this->assertCount(2, $docs);
+        self::assertCount(2, $docs);
     }
 
     public function testListDatabases(): void
@@ -890,7 +926,7 @@ abstract class IntegrationTest extends TestCase
         $databases = $client->listDatabases();
 
         $names = array_map(static fn ($db) => (is_array($db) ? $db['name'] : $db->getName()), is_array($databases) ? $databases : iterator_to_array($databases));
-        $this->assertContains('test', $names);
+        self::assertContains('test', $names);
     }
 
     public function testPushWithEach(): void
@@ -899,7 +935,7 @@ abstract class IntegrationTest extends TestCase
 
         $this->collection->updateOne(['_id' => '1'], ['$push' => ['tags' => ['$each' => ['bar', 'baz']]]]);
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals(['foo', 'bar', 'baz'], (array)$doc['tags']);
+        self::assertEquals(['foo', 'bar', 'baz'], (array)$doc['tags']);
     }
 
     public function testNestedFilter(): void
@@ -910,8 +946,8 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '3', 'metadata' => ['logins' => 5, 'active' => false]],
         ]);
 
-        $this->assertCount(1, iterator_to_array($this->collection->find(['metadata.logins' => 5, 'metadata.active' => false])));
-        $this->assertCount(1, iterator_to_array($this->collection->find(['metadata.logins' => ['$gt' => 10]])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['metadata.logins' => 5, 'metadata.active' => false])));
+        self::assertCount(1, iterator_to_array($this->collection->find(['metadata.logins' => ['$gt' => 10]])));
     }
 
     public function testComplexAggregate(): void
@@ -938,13 +974,13 @@ abstract class IntegrationTest extends TestCase
         $result = $this->collection->aggregate($pipeline);
         $docs = array_values(iterator_to_array($result));
 
-        $this->assertCount(3, $docs);
-        $this->assertEquals('baz', $docs[0]['_id']);
-        $this->assertEquals(40, $docs[0]['total']);
-        $this->assertEquals('bar', $docs[1]['_id']);
-        $this->assertEquals(20, $docs[1]['total']);
-        $this->assertEquals('foo', $docs[2]['_id']);
-        $this->assertEquals(10, $docs[2]['total']);
+        self::assertCount(3, $docs);
+        self::assertEquals('baz', $docs[0]['_id']);
+        self::assertEquals(40, $docs[0]['total']);
+        self::assertEquals('bar', $docs[1]['_id']);
+        self::assertEquals(20, $docs[1]['total']);
+        self::assertEquals('foo', $docs[2]['_id']);
+        self::assertEquals(10, $docs[2]['total']);
     }
 
     public function testCombinedUpdate(): void
@@ -966,9 +1002,9 @@ abstract class IntegrationTest extends TestCase
         );
 
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals('bar', $doc['name']);
-        $this->assertEquals(15, $doc['score']);
-        $this->assertEquals(['a', 'b'], (array)$doc['tags']);
+        self::assertEquals('bar', $doc['name']);
+        self::assertEquals(15, $doc['score']);
+        self::assertEquals(['a', 'b'], (array)$doc['tags']);
     }
 
     public function testIncCreatesField(): void
@@ -978,7 +1014,7 @@ abstract class IntegrationTest extends TestCase
         $this->collection->updateOne(['_id' => '1'], ['$inc' => ['counter' => 2]]);
         $doc = $this->collection->findOne(['_id' => '1']);
 
-        $this->assertEquals(2, $doc['counter']);
+        self::assertEquals(2, $doc['counter']);
     }
 
     public function testMulOperator(): void
@@ -988,7 +1024,7 @@ abstract class IntegrationTest extends TestCase
         $this->collection->updateOne(['_id' => '1'], ['$mul' => ['value' => 3]]);
         $doc = $this->collection->findOne(['_id' => '1']);
 
-        $this->assertEquals(15, $doc['value']);
+        self::assertEquals(15, $doc['value']);
     }
 
     public function testSetOnInsert(): void
@@ -1003,8 +1039,8 @@ abstract class IntegrationTest extends TestCase
         );
 
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals('first', $doc['name']);
-        $this->assertEquals('yes', $doc['created']);
+        self::assertEquals('first', $doc['name']);
+        self::assertEquals('yes', $doc['created']);
 
         $this->collection->updateOne(
             ['_id' => '1'],
@@ -1016,8 +1052,8 @@ abstract class IntegrationTest extends TestCase
         );
 
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals('second', $doc['name']);
-        $this->assertEquals('yes', $doc['created']);
+        self::assertEquals('second', $doc['name']);
+        self::assertEquals('yes', $doc['created']);
     }
 
     public function testRegexOptions(): void
@@ -1027,8 +1063,8 @@ abstract class IntegrationTest extends TestCase
             ['_id' => '2', 'text' => "a\nc"],
         ]);
 
-        $this->assertCount(1, iterator_to_array($this->collection->find(['text' => ['$regex' => '^foo', '$options' => 'm']]))); // multiline
-        $this->assertCount(1, iterator_to_array($this->collection->find(['text' => ['$regex' => 'a.*c', '$options' => 's']]))); // dotall
+        self::assertCount(1, iterator_to_array($this->collection->find(['text' => ['$regex' => '^foo', '$options' => 'm']]))); // multiline
+        self::assertCount(1, iterator_to_array($this->collection->find(['text' => ['$regex' => 'a.*c', '$options' => 's']]))); // dotall
     }
 
     public function testInvalidTopLevelOperatorThrows(): void
@@ -1081,8 +1117,8 @@ abstract class IntegrationTest extends TestCase
         }
 
         $result = $this->collection->updateOne(['name' => 'foo'], ['$set' => ['name' => 'bar']], ['upsert' => true]);
-        $this->assertEquals(1, $result->getUpsertedCount());
-        $this->assertNotNull($result->getUpsertedId());
+        self::assertEquals(1, $result->getUpsertedCount());
+        self::assertNotNull($result->getUpsertedId());
     }
 
     public function testInvalidBitOperatorThrows(): void
@@ -1120,8 +1156,8 @@ abstract class IntegrationTest extends TestCase
             ],
         ]));
 
-        $this->assertCount(1, $docs);
-        $this->assertEquals('1', $docs[0]['_id']);
+        self::assertCount(1, $docs);
+        self::assertEquals('1', $docs[0]['_id']);
     }
 
     public function testLookupComplex(): void
@@ -1174,10 +1210,10 @@ abstract class IntegrationTest extends TestCase
         $result = $orders->aggregate($pipeline);
         $docs = array_values(iterator_to_array($result));
 
-        $this->assertCount(1, $docs);
-        $this->assertEquals('o1', $docs[0]['_id']);
-        $this->assertEquals('Laptop', $docs[0]['product']['name']);
-        $this->assertEquals('Electronics', $docs[0]['category']['name']);
+        self::assertCount(1, $docs);
+        self::assertEquals('o1', $docs[0]['_id']);
+        self::assertEquals('Laptop', $docs[0]['product']['name']);
+        self::assertEquals('Electronics', $docs[0]['category']['name']);
     }
 
     public function testNestedSortAndProjection(): void
@@ -1194,10 +1230,10 @@ abstract class IntegrationTest extends TestCase
         ]);
         $docs = array_values(iterator_to_array($result));
 
-        $this->assertCount(3, $docs);
-        $this->assertEquals('2', $docs[0]['_id']);
-        $this->assertEquals('A', $docs[0]['metadata']['label']);
-        $this->assertArrayNotHasKey('order', $docs[0]['metadata']);
+        self::assertCount(3, $docs);
+        self::assertEquals('2', $docs[0]['_id']);
+        self::assertEquals('A', $docs[0]['metadata']['label']);
+        self::assertArrayNotHasKey('order', $docs[0]['metadata']);
     }
 
     public function testUpdateWithDotNotation(): void
@@ -1213,8 +1249,8 @@ abstract class IntegrationTest extends TestCase
         );
 
         $doc = $this->collection->findOne(['_id' => '1']);
-        $this->assertEquals('bar', $doc['profile']['name']);
-        $this->assertEquals(3, $doc['profile']['stats']['score']);
+        self::assertEquals('bar', $doc['profile']['name']);
+        self::assertEquals(3, $doc['profile']['stats']['score']);
     }
 
     public function testDeeplyNestedUpdate(): void
@@ -1231,8 +1267,8 @@ abstract class IntegrationTest extends TestCase
 
         $doc = $this->collection->findOne(['_id' => '1']);
 
-        $this->assertEquals('deep', $doc['a']['b']['c']['d']['e']['f']);
-        $this->assertEquals(2, $doc['a']['b']['c']['d']['e']['counter']);
+        self::assertEquals('deep', $doc['a']['b']['c']['d']['e']['f']);
+        self::assertEquals(2, $doc['a']['b']['c']['d']['e']['counter']);
     }
 
     public function testUnsetWithDotNotation(): void
@@ -1242,7 +1278,7 @@ abstract class IntegrationTest extends TestCase
         $this->collection->updateOne(['_id' => '1'], ['$unset' => ['profile.stats.score' => true]]);
         $doc = $this->collection->findOne(['_id' => '1']);
 
-        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
+        self::assertArrayNotHasKey('score', $doc['profile']['stats']);
     }
 
     public function testRenameWithDotNotation(): void
@@ -1252,8 +1288,8 @@ abstract class IntegrationTest extends TestCase
         $this->collection->updateOne(['_id' => '1'], ['$rename' => ['profile.stats.score' => 'profile.stats.points']]);
         $doc = $this->collection->findOne(['_id' => '1']);
 
-        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
-        $this->assertEquals(1, $doc['profile']['stats']['points']);
+        self::assertArrayNotHasKey('score', $doc['profile']['stats']);
+        self::assertEquals(1, $doc['profile']['stats']['points']);
     }
 
     public function testNestedProjectionInclude(): void
@@ -1266,12 +1302,12 @@ abstract class IntegrationTest extends TestCase
 
         $doc = $this->collection->findOne(['_id' => '1'], ['projection' => ['profile.stats.level' => 1]]);
 
-        $this->assertArrayHasKey('_id', $doc);
-        $this->assertArrayHasKey('profile', $doc);
-        $this->assertArrayHasKey('stats', $doc['profile']);
-        $this->assertArrayHasKey('level', $doc['profile']['stats']);
-        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
-        $this->assertArrayNotHasKey('meta', $doc);
+        self::assertArrayHasKey('_id', $doc);
+        self::assertArrayHasKey('profile', $doc);
+        self::assertArrayHasKey('stats', $doc['profile']);
+        self::assertArrayHasKey('level', $doc['profile']['stats']);
+        self::assertArrayNotHasKey('score', $doc['profile']['stats']);
+        self::assertArrayNotHasKey('meta', $doc);
     }
 
     public function testProjectionExcludesNestedAndTopLevel(): void
@@ -1286,24 +1322,24 @@ abstract class IntegrationTest extends TestCase
             'projection' => ['profile.stats.score' => 0, 'meta' => 0],
         ]);
 
-        $this->assertArrayHasKey('profile', $doc);
-        $this->assertArrayHasKey('stats', $doc['profile']);
-        $this->assertArrayNotHasKey('score', $doc['profile']['stats']);
-        $this->assertEquals(2, $doc['profile']['stats']['level']);
-        $this->assertArrayNotHasKey('meta', $doc);
+        self::assertArrayHasKey('profile', $doc);
+        self::assertArrayHasKey('stats', $doc['profile']);
+        self::assertArrayNotHasKey('score', $doc['profile']['stats']);
+        self::assertEquals(2, $doc['profile']['stats']['level']);
+        self::assertArrayNotHasKey('meta', $doc);
     }
 
     public function testSelectAliases(): void
     {
         $client = $this->getClient();
         $db = $client->selectDatabase('test');
-        $this->assertNotNull($db);
+        self::assertNotNull($db);
 
         $col = $db->selectCollection('items');
 
         $col->insertOne(['_id' => 'alias-test', 'name' => 'alias']);
         $doc = $col->findOne(['_id' => 'alias-test']);
 
-        $this->assertEquals('alias', $doc['name']);
+        self::assertEquals('alias', $doc['name']);
     }
 }

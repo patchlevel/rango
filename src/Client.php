@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
+use Iterator;
+use Patchlevel\Rango\Model\CollectionInfo;
+use Patchlevel\Rango\Model\DatabaseInfo;
 use Patchlevel\Rango\Sql\Identifier;
 use PDO;
 
@@ -14,11 +17,16 @@ final class Client
     private readonly PDO $pdo;
     private readonly QueryBuilder $queryBuilder;
 
-    public function __construct(string $uri)
+    public function __construct(string|PDO $uri)
     {
-        $this->pdo = new PDO($uri, null, null, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        ]);
+        if ($uri instanceof PDO) {
+            $this->pdo = $uri;
+        } else {
+            $this->pdo = new PDO($uri, null, null, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            ]);
+        }
+
         $this->queryBuilder = new QueryBuilder($this->pdo);
     }
 
@@ -34,10 +42,15 @@ final class Client
         return $this->getDatabase($name);
     }
 
+    public function getCollection(string $databaseName, string $collectionName): Collection
+    {
+        return $this->getDatabase($databaseName)->getCollection($collectionName);
+    }
+
     /** @return Collection<array<string, mixed>> */
     public function selectCollection(string $databaseName, string $collectionName): Collection
     {
-        return $this->getDatabase($databaseName)->getCollection($collectionName);
+        return $this->getCollection($databaseName, $collectionName);
     }
 
     public function dropDatabase(string $name): void
@@ -45,22 +58,16 @@ final class Client
         SqlRunner::exec($this->pdo, sprintf('DROP SCHEMA IF EXISTS %s CASCADE', Identifier::quote($name)));
     }
 
-    /** @return list<array{name: string}> */
-    public function listDatabases(): array
+    /** @return Iterator<DatabaseInfo> */
+    public function listDatabases(): Iterator
     {
-        /** @var list<array{name: string}> $databases */
-        $databases = $this->run(new Operation\ListDatabases());
-
-        return $databases;
+        return $this->run(new Operation\ListDatabases());
     }
 
-    /** @return list<array{name: string}> */
-    public function listCollections(string $database): array
+    /** @return Iterator<CollectionInfo> */
+    public function listCollections(string $database): Iterator
     {
-        /** @var list<array{name: string}> $collections */
-        $collections = $this->run(new Operation\ListCollections($database));
-
-        return $collections;
+        return $this->run(new Operation\ListCollections($database));
     }
 
     public function renameCollection(string $database, string $oldName, string $newName): void

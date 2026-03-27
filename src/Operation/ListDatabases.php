@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango\Operation;
 
+use ArrayIterator;
+use Iterator;
+use Patchlevel\Rango\Model\DatabaseInfo;
 use Patchlevel\Rango\QueryBuilder;
 use Patchlevel\Rango\SqlRunner;
 use PDO;
+
+use function array_map;
 
 /** @implements Operation<list<array{name: string}>> */
 final class ListDatabases implements Operation
@@ -18,8 +23,8 @@ final class ListDatabases implements Operation
     ) {
     }
 
-    /** @return list<array{name: string}> */
-    public function execute(PDO $pdo, QueryBuilder $queryBuilder): array
+    /** @return Iterator<DatabaseInfo> */
+    public function execute(PDO $pdo, QueryBuilder $queryBuilder): Iterator
     {
         $sql = $queryBuilder->createListDatabases();
         $statement = SqlRunner::query($pdo, $sql);
@@ -27,6 +32,11 @@ final class ListDatabases implements Operation
         /** @var list<array{name: string}> $rows */
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        return $rows;
+        $databases = array_map(
+            static fn (array $row): DatabaseInfo => new DatabaseInfo($row),
+            $rows,
+        );
+
+        return new ArrayIterator($databases);
     }
 }

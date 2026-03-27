@@ -28,6 +28,8 @@ final class PostgresIntegrationTest extends IntegrationTest
     {
         getenv('POSTGRES_URI') ?: $this->markTestSkipped('POSTGRES_URI is not set');
 
+        $this->getDatabase()->dropCollection('items_new');
+
         parent::setUp();
     }
 

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
+use Iterator;
+use Patchlevel\Rango\Model\IndexInfo;
+
 /** @template TDocument of array<string, mixed> */
 final class Collection
 {
@@ -220,8 +223,8 @@ final class Collection
         $this->client->run(new Operation\DropIndex($this->databaseName, $this->collectionName, $name));
     }
 
-    /** @return list<array{name: string}> */
-    public function listIndexes(): array
+    /** @return Iterator<IndexInfo> */
+    public function listIndexes(): Iterator
     {
         return $this->client->run(new Operation\ListIndexes($this->databaseName, $this->collectionName));
     }

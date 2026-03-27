@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango;
 
+use Iterator;
+use Patchlevel\Rango\Model\CollectionInfo;
+
 final class Database
 {
     public function __construct(
@@ -24,18 +27,21 @@ final class Database
         return $this->getCollection($collectionName);
     }
 
-    /** @return list<array{name: string}> */
-    public function listCollections(): array
+    /** @return Iterator<CollectionInfo> */
+    public function listCollections(): Iterator
     {
-        /** @var list<array{name: string}> $collections */
-        $collections = $this->client->listCollections($this->databaseName);
-
-        return $collections;
+        return $this->client->listCollections($this->databaseName);
     }
 
     public function renameCollection(string $oldName, string $newName): void
     {
         $this->client->renameCollection($this->databaseName, $oldName, $newName);
+    }
+
+    /** @param array<string, mixed> $options */
+    public function dropCollection(string $collectionName, array $options = []): void
+    {
+        $this->client->getCollection($this->databaseName, $collectionName)->drop();
     }
 
     public function drop(): void
