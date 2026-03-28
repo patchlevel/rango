@@ -55,30 +55,6 @@ parameters:
 			path: src/Collection.php
 
 		-
-			message: '#^Call to function is_array\(\) with array\<string, mixed\> will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Cursor.php
-
-		-
-			message: '#^Generator expects value type TDocument of array\<string, mixed\>, array\<string, mixed\> given\.$#'
-			identifier: generator.valueType
-			count: 2
-			path: src/Cursor.php
-
-		-
-			message: '#^Method Patchlevel\\Rango\\Cursor\:\:toArray\(\) should return list\<TDocument of array\<string, mixed\>\> but returns array\<array\<string, mixed\>\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Cursor.php
-
-		-
-			message: '#^Method Patchlevel\\Rango\\Cursor\:\:toArray\(\) should return list\<TDocument of array\<string, mixed\>\> but returns list\<array\<string, mixed\>\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Cursor.php
-
-		-
 			message: '#^Parameter \#1 \$key of function array_key_exists expects int\|string, mixed given\.$#'
 			identifier: argument.type
 			count: 1
@@ -89,6 +65,30 @@ parameters:
 			identifier: offsetAccess.invalidOffset
 			count: 1
 			path: src/Model/CollectionInfo.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<string, mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Model/Cursor.php
+
+		-
+			message: '#^Generator expects value type TDocument of array\<string, mixed\>, array\<string, mixed\> given\.$#'
+			identifier: generator.valueType
+			count: 2
+			path: src/Model/Cursor.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Model\\Cursor\:\:toArray\(\) should return list\<TDocument of array\<string, mixed\>\> but returns array\<array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Model/Cursor.php
+
+		-
+			message: '#^Method Patchlevel\\Rango\\Model\\Cursor\:\:toArray\(\) should return list\<TDocument of array\<string, mixed\>\> but returns list\<array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Model/Cursor.php
 
 		-
 			message: '#^Parameter \#1 \$key of function array_key_exists expects int\|string, mixed given\.$#'
@@ -127,37 +127,37 @@ parameters:
 			path: src/Model/IndexInfo.php
 
 		-
-			message: '#^Method Patchlevel\\Rango\\Operation\\Aggregate\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			message: '#^Method Patchlevel\\Rango\\Operation\\Aggregate\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Model\\Cursor does not specify its types\: TDocument$#'
 			identifier: missingType.generics
 			count: 1
 			path: src/Operation/Aggregate.php
 
 		-
-			message: '#^Method Patchlevel\\Rango\\Operation\\Find\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			message: '#^Method Patchlevel\\Rango\\Operation\\Find\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Model\\Cursor does not specify its types\: TDocument$#'
 			identifier: missingType.generics
 			count: 1
 			path: src/Operation/Find.php
 
 		-
-			message: '#^Method Patchlevel\\Rango\\Operation\\FindOne\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			message: '#^Method Patchlevel\\Rango\\Operation\\FindOne\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Model\\Cursor does not specify its types\: TDocument$#'
 			identifier: missingType.generics
 			count: 1
 			path: src/Operation/FindOne.php
 
 		-
-			message: '#^Method Patchlevel\\Rango\\Operation\\FindOneAndDelete\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			message: '#^Method Patchlevel\\Rango\\Operation\\FindOneAndDelete\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Model\\Cursor does not specify its types\: TDocument$#'
 			identifier: missingType.generics
 			count: 1
 			path: src/Operation/FindOneAndDelete.php
 
 		-
-			message: '#^Method Patchlevel\\Rango\\Operation\\FindOneAndReplace\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			message: '#^Method Patchlevel\\Rango\\Operation\\FindOneAndReplace\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Model\\Cursor does not specify its types\: TDocument$#'
 			identifier: missingType.generics
 			count: 1
 			path: src/Operation/FindOneAndReplace.php
 
 		-
-			message: '#^Method Patchlevel\\Rango\\Operation\\FindOneAndUpdate\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Cursor does not specify its types\: TDocument$#'
+			message: '#^Method Patchlevel\\Rango\\Operation\\FindOneAndUpdate\:\:execute\(\) return type with generic class Patchlevel\\Rango\\Model\\Cursor does not specify its types\: TDocument$#'
 			identifier: missingType.generics
 			count: 1
 			path: src/Operation/FindOneAndUpdate.php
