@@ -48,4 +48,9 @@ final class Database
     {
         $this->client->dropDatabase($this->databaseName);
     }
+
+    public function getDatabaseName(): string
+    {
+        return $this->databaseName;
+    }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Patchlevel\Rango;
+namespace Patchlevel\Rango\Model;
 
 use Countable;
 use IteratorAggregate;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango;
 
 use Iterator;
+use Patchlevel\Rango\Model\Cursor;
 use Patchlevel\Rango\Model\IndexInfo;
 
 /** @template TDocument of array<string, mixed> */
@@ -227,5 +228,15 @@ final class Collection
     public function listIndexes(): Iterator
     {
         return $this->client->run(new Operation\ListIndexes($this->databaseName, $this->collectionName));
+    }
+
+    public function getCollectionName(): string
+    {
+        return $this->collectionName;
+    }
+
+    public function getDatabaseName(): string
+    {
+        return $this->databaseName;
     }
 }

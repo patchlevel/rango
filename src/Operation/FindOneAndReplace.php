@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Patchlevel\Rango\Operation;
 
-use Patchlevel\Rango\Cursor;
+use Patchlevel\Rango\Model\Cursor;
 use Patchlevel\Rango\QueryBuilder;
 use Patchlevel\Rango\SqlRunner;
 use PDO;
