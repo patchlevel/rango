@@ -32,8 +32,6 @@ final class Client
 
     public function getDatabase(string $name): Database
     {
-        SqlRunner::exec($this->pdo, sprintf('CREATE SCHEMA IF NOT EXISTS %s', Identifier::quote($name)));
-
         return new Database($this, $name);
     }
 
