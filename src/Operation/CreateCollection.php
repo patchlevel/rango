@@ -28,7 +28,8 @@ final class CreateCollection implements Operation
         SqlRunner::exec(
             $pdo,
             sprintf(
-                'CREATE TABLE IF NOT EXISTS %s.%s (_id TEXT PRIMARY KEY, data JSONB NOT NULL)',
+                'CREATE SCHEMA IF NOT EXISTS %s; CREATE TABLE IF NOT EXISTS %s.%s (_id TEXT PRIMARY KEY, data JSONB NOT NULL);',
+                $schema,
                 $schema,
                 $table,
             ),
