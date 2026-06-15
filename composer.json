@@ -2,12 +2,16 @@
   "name": "patchlevel/rango",
   "type": "library",
   "license": "MIT",
-  "description": "Rango",
+  "description": "A high-performance reimplementation of the MongoDB PHP API on top of PostgreSQL JSONB",
   "keywords": [
+    "patchlevel",
     "mongodb",
-    "postgres"
+    "postgres",
+    "postgresql",
+    "jsonb",
+    "document database"
   ],
-  "homepage": "https://github.com/patchlevel/hydrator",
+  "homepage": "https://patchlevel.dev/docs/rango/latest",
   "authors": [
     {
       "name": "Daniel Badura",
@@ -32,7 +36,8 @@
     "phpstan/phpstan": "^2.1.32",
     "phpstan/phpstan-phpunit": "^2.0.8",
     "phpunit/phpunit": "^11.5.17",
-    "symfony/var-dumper": "^6.4.0 || ^7.0.0 || ^8.0.0"
+    "symfony/var-dumper": "^6.4.0 || ^7.0.0 || ^8.0.0",
+    "wnx/commonmark-markdown-renderer": "^1.6"
   },
   "config": {
     "preferred-install": {
