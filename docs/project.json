@@ -1,0 +1,28 @@
+{
+  "navigation": [
+    { "title": "Introduction", "file": "introduction.md" },
+    { "title": "Getting Started", "file": "getting-started.md" },
+    {
+      "title": "Basics",
+      "subEntries": [
+        { "title": "Connection", "file": "connection.md" },
+        { "title": "CRUD Operations", "file": "crud-operations.md" },
+        { "title": "Querying", "file": "querying.md" },
+        { "title": "Update Operators", "file": "update-operators.md" }
+      ]
+    },
+    {
+      "title": "Advanced",
+      "subEntries": [
+        { "title": "Aggregation", "file": "aggregation.md" },
+        { "title": "Indexes", "file": "indexes.md" }
+      ]
+    },
+    {
+      "title": "Reference",
+      "subEntries": [
+        { "title": "How it Works", "file": "how-it-works.md" }
+      ]
+    }
+  ]
+}
