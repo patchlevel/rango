@@ -20,6 +20,7 @@ use function array_map;
 use function array_values;
 use function is_array;
 use function iterator_to_array;
+use function json_decode;
 use function json_encode;
 use function sort;
 
@@ -981,6 +982,453 @@ abstract class IntegrationTest extends TestCase
         self::assertEquals(20, $docs[1]['total']);
         self::assertEquals('foo', $docs[2]['_id']);
         self::assertEquals(10, $docs[2]['total']);
+    }
+
+    public function testUnwindWithIncludeArrayIndex(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'items' => ['a', 'b', 'c']]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$unwind' => ['path' => '$items', 'includeArrayIndex' => 'idx']],
+        ]));
+
+        self::assertCount(3, $docs);
+        self::assertSame('a', $docs[0]['items']);
+        self::assertSame(0, $docs[0]['idx']);
+        self::assertSame('b', $docs[1]['items']);
+        self::assertSame(1, $docs[1]['idx']);
+        self::assertSame('c', $docs[2]['items']);
+        self::assertSame(2, $docs[2]['idx']);
+    }
+
+    public function testUnwindPreserveNullAndEmptyArrays(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'items' => ['a', 'b']],
+            ['_id' => '2', 'items' => []],
+            ['_id' => '3'],
+            ['_id' => '4', 'items' => null],
+        ]);
+
+        $preserved = $this->toPlainArrays($this->collection->aggregate([
+            ['$unwind' => ['path' => '$items', 'preserveNullAndEmptyArrays' => true]],
+            ['$sort' => ['_id' => 1]],
+        ]));
+        self::assertSame(
+            ['1', '1', '2', '3', '4'],
+            array_map(static fn (array $doc) => $doc['_id'], $preserved),
+        );
+
+        $default = $this->toPlainArrays($this->collection->aggregate([
+            ['$unwind' => '$items'],
+            ['$sort' => ['_id' => 1]],
+        ]));
+        self::assertSame(
+            ['1', '1'],
+            array_map(static fn (array $doc) => $doc['_id'], $default),
+        );
+    }
+
+    public function testUnwindScalarField(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'item' => 'solo'],
+            ['_id' => '2', 'item' => ['x', 'y']],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$unwind' => '$item'],
+            ['$sort' => ['_id' => 1]],
+        ]));
+
+        self::assertCount(3, $docs);
+        self::assertSame('solo', $docs[0]['item']);
+        self::assertSame('x', $docs[1]['item']);
+        self::assertSame('y', $docs[2]['item']);
+    }
+
+    public function testGroupByMultipleKeys(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'store' => 'a', 'type' => 'x', 'amount' => 10],
+            ['_id' => '2', 'store' => 'a', 'type' => 'x', 'amount' => 5],
+            ['_id' => '3', 'store' => 'a', 'type' => 'y', 'amount' => 20],
+            ['_id' => '4', 'store' => 'b', 'type' => 'x', 'amount' => 7],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            [
+                '$group' => [
+                    '_id' => ['store' => '$store', 'type' => '$type'],
+                    'total' => ['$sum' => '$amount'],
+                ],
+            ],
+        ]));
+
+        $rows = [];
+        foreach ($docs as $doc) {
+            $id = $doc['_id'];
+            self::assertIsArray($id);
+            $rows[] = ['store' => $id['store'], 'type' => $id['type'], 'total' => $doc['total']];
+        }
+
+        self::assertEqualsCanonicalizing([
+            ['store' => 'a', 'type' => 'x', 'total' => 15],
+            ['store' => 'a', 'type' => 'y', 'total' => 20],
+            ['store' => 'b', 'type' => 'x', 'total' => 7],
+        ], $rows);
+    }
+
+    public function testGroupPushAndAddToSet(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'cat' => 'A', 'tag' => 'x'],
+            ['_id' => '2', 'cat' => 'A', 'tag' => 'y'],
+            ['_id' => '3', 'cat' => 'A', 'tag' => 'x'],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            [
+                '$group' => [
+                    '_id' => '$cat',
+                    'all' => ['$push' => '$tag'],
+                    'unique' => ['$addToSet' => '$tag'],
+                ],
+            ],
+        ]));
+
+        self::assertCount(1, $docs);
+
+        $all = $docs[0]['all'];
+        self::assertIsArray($all);
+        sort($all);
+        self::assertSame(['x', 'x', 'y'], $all);
+
+        $unique = $docs[0]['unique'];
+        self::assertIsArray($unique);
+        sort($unique);
+        self::assertSame(['x', 'y'], $unique);
+    }
+
+    public function testCountStage(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'status' => 'A'],
+            ['_id' => '2', 'status' => 'B'],
+            ['_id' => '3', 'status' => 'A'],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$match' => ['status' => 'A']],
+            ['$count' => 'total'],
+        ]));
+
+        self::assertCount(1, $docs);
+        self::assertSame(2, $docs[0]['total']);
+
+        $empty = $this->toPlainArrays($this->collection->aggregate([
+            ['$match' => ['status' => 'Z']],
+            ['$count' => 'total'],
+        ]));
+        self::assertCount(0, $empty);
+    }
+
+    public function testProjectComputedFields(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'first' => 'Ada', 'last' => 'Lovelace', 'price' => 10, 'qty' => 3],
+            ['_id' => '2', 'first' => 'Alan', 'last' => 'Turing', 'price' => 5, 'qty' => 4],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$sort' => ['_id' => 1]],
+            [
+                '$project' => [
+                    '_id' => 0,
+                    'name' => ['$concat' => ['$first', ' ', '$last']],
+                    'renamed' => '$first',
+                    'total' => ['$multiply' => ['$price', '$qty']],
+                ],
+            ],
+        ]));
+
+        self::assertEquals([
+            ['name' => 'Ada Lovelace', 'renamed' => 'Ada', 'total' => 30],
+            ['name' => 'Alan Turing', 'renamed' => 'Alan', 'total' => 20],
+        ], $docs);
+    }
+
+    public function testProjectConditional(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'score' => 80],
+            ['_id' => '2', 'score' => 40],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$sort' => ['_id' => 1]],
+            [
+                '$project' => [
+                    'grade' => ['$cond' => [['$gte' => ['$score', 60]], 'pass', 'fail']],
+                ],
+            ],
+        ]));
+
+        self::assertSame('1', $docs[0]['_id']);
+        self::assertSame('pass', $docs[0]['grade']);
+        self::assertSame('fail', $docs[1]['grade']);
+    }
+
+    public function testAddFieldsStage(): void
+    {
+        $this->collection->insertOne([
+            '_id' => '1',
+            'price' => 10,
+            'qty' => 3,
+            'meta' => ['tag' => 'x'],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            [
+                '$addFields' => [
+                    'total' => ['$multiply' => ['$price', '$qty']],
+                    'meta.checked' => true,
+                ],
+            ],
+        ]));
+
+        self::assertCount(1, $docs);
+        $doc = $docs[0];
+        self::assertSame(10, $doc['price']);
+        self::assertEquals(30, $doc['total']);
+        $meta = $doc['meta'];
+        self::assertIsArray($meta);
+        self::assertSame('x', $meta['tag']);
+        self::assertTrue($meta['checked']);
+
+        $viaSet = $this->toPlainArrays($this->collection->aggregate([
+            ['$set' => ['doubled' => ['$multiply' => ['$price', 2]]]],
+        ]));
+        self::assertEquals(20, $viaSet[0]['doubled']);
+    }
+
+    public function testGroupSumOfExpression(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'cat' => 'A', 'price' => 10, 'qty' => 2],
+            ['_id' => '2', 'cat' => 'A', 'price' => 5, 'qty' => 4],
+            ['_id' => '3', 'cat' => 'B', 'price' => 3, 'qty' => 3],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            [
+                '$group' => [
+                    '_id' => '$cat',
+                    'revenue' => ['$sum' => ['$multiply' => ['$price', '$qty']]],
+                ],
+            ],
+            ['$sort' => ['_id' => 1]],
+        ]));
+
+        self::assertSame('A', $docs[0]['_id']);
+        self::assertEquals(40, $docs[0]['revenue']);
+        self::assertSame('B', $docs[1]['_id']);
+        self::assertEquals(9, $docs[1]['revenue']);
+    }
+
+    public function testGroupByExpression(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'cat' => 'foo', 'n' => 1],
+            ['_id' => '2', 'cat' => 'FOO', 'n' => 2],
+            ['_id' => '3', 'cat' => 'bar', 'n' => 4],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            [
+                '$group' => [
+                    '_id' => ['$toUpper' => '$cat'],
+                    'total' => ['$sum' => '$n'],
+                ],
+            ],
+            ['$sort' => ['_id' => 1]],
+        ]));
+
+        self::assertSame('BAR', $docs[0]['_id']);
+        self::assertEquals(4, $docs[0]['total']);
+        self::assertSame('FOO', $docs[1]['_id']);
+        self::assertEquals(3, $docs[1]['total']);
+    }
+
+    public function testExprInFind(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'spent' => 120, 'budget' => 100],
+            ['_id' => '2', 'spent' => 80, 'budget' => 100],
+            ['_id' => '3', 'spent' => 100, 'budget' => 100],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->find([
+            '$expr' => ['$gt' => ['$spent', '$budget']],
+        ]));
+        $ids = array_map(static fn (array $doc) => $doc['_id'], $docs);
+        sort($ids);
+
+        self::assertSame(['1'], $ids);
+    }
+
+    public function testExprInMatch(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'a' => 5, 'b' => 2],
+            ['_id' => '2', 'a' => 1, 'b' => 4],
+            ['_id' => '3', 'a' => 3, 'b' => 3],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$match' => ['$expr' => ['$gte' => ['$a', '$b']]]],
+            ['$sort' => ['_id' => 1]],
+        ]));
+
+        self::assertSame(['1', '3'], array_map(static fn (array $doc) => $doc['_id'], $docs));
+    }
+
+    public function testUnsetStage(): void
+    {
+        $this->collection->insertOne([
+            '_id' => '1',
+            'name' => 'foo',
+            'secret' => 'hide',
+            'meta' => ['keep' => 1, 'drop' => 2],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$unset' => ['secret', 'meta.drop']],
+        ]));
+
+        $doc = $docs[0];
+        self::assertSame('foo', $doc['name']);
+        self::assertArrayNotHasKey('secret', $doc);
+        $meta = $doc['meta'];
+        self::assertIsArray($meta);
+        self::assertSame(1, $meta['keep']);
+        self::assertArrayNotHasKey('drop', $meta);
+
+        $single = $this->toPlainArrays($this->collection->aggregate([
+            ['$unset' => 'name'],
+        ]));
+        self::assertArrayNotHasKey('name', $single[0]);
+    }
+
+    public function testReplaceRootStage(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'profile' => ['handle' => 'ada', 'age' => 30]],
+            ['_id' => '2', 'profile' => ['handle' => 'alan', 'age' => 40]],
+        ]);
+
+        $viaRoot = $this->toPlainArrays($this->collection->aggregate([
+            ['$sort' => ['_id' => 1]],
+            ['$replaceRoot' => ['newRoot' => '$profile']],
+        ]));
+        self::assertSame('ada', $viaRoot[0]['handle']);
+        self::assertSame(30, $viaRoot[0]['age']);
+        self::assertArrayNotHasKey('profile', $viaRoot[0]);
+
+        $viaWith = $this->toPlainArrays($this->collection->aggregate([
+            ['$sort' => ['_id' => 1]],
+            ['$replaceWith' => ['id' => '$_id', 'name' => '$profile.handle']],
+        ]));
+        self::assertSame('1', $viaWith[0]['id']);
+        self::assertSame('ada', $viaWith[0]['name']);
+    }
+
+    public function testSortByCountStage(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'type' => 'a'],
+            ['_id' => '2', 'type' => 'b'],
+            ['_id' => '3', 'type' => 'a'],
+            ['_id' => '4', 'type' => 'a'],
+            ['_id' => '5', 'type' => 'b'],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$sortByCount' => '$type'],
+        ]));
+
+        self::assertCount(2, $docs);
+        self::assertSame('a', $docs[0]['_id']);
+        self::assertEquals(3, $docs[0]['count']);
+        self::assertSame('b', $docs[1]['_id']);
+        self::assertEquals(2, $docs[1]['count']);
+    }
+
+    public function testArrayExpressionOperators(): void
+    {
+        $this->collection->insertOne([
+            '_id' => '1',
+            'nums' => [10, 20, 30, 40],
+            'tags' => ['a', 'b', 'c'],
+            'more' => ['d', 'e'],
+            'scalar' => 5,
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            [
+                '$project' => [
+                    '_id' => 0,
+                    'size' => ['$size' => '$nums'],
+                    'firstNum' => ['$first' => '$nums'],
+                    'lastNum' => ['$last' => '$nums'],
+                    'third' => ['$arrayElemAt' => ['$nums', 2]],
+                    'fromEnd' => ['$arrayElemAt' => ['$nums', -1]],
+                    'hasB' => ['$in' => ['b', '$tags']],
+                    'hasZ' => ['$in' => ['z', '$tags']],
+                    'numsIsArray' => ['$isArray' => '$nums'],
+                    'scalarIsArray' => ['$isArray' => '$scalar'],
+                    'combined' => ['$concatArrays' => ['$tags', '$more']],
+                    'reversed' => ['$reverseArray' => '$tags'],
+                    'firstTwo' => ['$slice' => ['$nums', 2]],
+                    'lastTwo' => ['$slice' => ['$nums', -2]],
+                    'middle' => ['$slice' => ['$nums', 1, 2]],
+                ],
+            ],
+        ]));
+
+        $doc = $docs[0];
+        self::assertSame(4, $doc['size']);
+        self::assertSame(10, $doc['firstNum']);
+        self::assertSame(40, $doc['lastNum']);
+        self::assertSame(30, $doc['third']);
+        self::assertSame(40, $doc['fromEnd']);
+        self::assertTrue($doc['hasB']);
+        self::assertFalse($doc['hasZ']);
+        self::assertTrue($doc['numsIsArray']);
+        self::assertFalse($doc['scalarIsArray']);
+        self::assertSame(['a', 'b', 'c', 'd', 'e'], $doc['combined']);
+        self::assertSame(['c', 'b', 'a'], $doc['reversed']);
+        self::assertSame([10, 20], $doc['firstTwo']);
+        self::assertSame([30, 40], $doc['lastTwo']);
+        self::assertSame([20, 30], $doc['middle']);
+    }
+
+    /**
+     * @param iterable<mixed> $result
+     *
+     * @return list<array<mixed, mixed>>
+     */
+    protected function toPlainArrays(iterable $result): array
+    {
+        $documents = [];
+
+        foreach ($result as $document) {
+            $decoded = json_decode((string)json_encode($document), true);
+            self::assertIsArray($decoded);
+            $documents[] = $decoded;
+        }
+
+        return $documents;
     }
 
     public function testCombinedUpdate(): void

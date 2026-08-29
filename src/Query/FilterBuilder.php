@@ -21,10 +21,14 @@ use function str_starts_with;
 
 final readonly class FilterBuilder
 {
+    private ExpressionBuilder $expressionBuilder;
+
     public function __construct(
         private PDO $pdo,
         private string|null $idColumn = null,
+        ExpressionBuilder|null $expressionBuilder = null,
     ) {
+        $this->expressionBuilder = $expressionBuilder ?? new ExpressionBuilder($pdo);
     }
 
     /** @param array<string, mixed> $filter */
@@ -59,6 +63,11 @@ final readonly class FilterBuilder
 
             if ($key === '$not') {
                 $parts[] = 'NOT (' . $this->buildFilter($value, 'AND', $column) . ')';
+                continue;
+            }
+
+            if ($key === '$expr') {
+                $parts[] = '(' . $this->expressionBuilder->compileBoolean($value) . ')';
                 continue;
             }
 

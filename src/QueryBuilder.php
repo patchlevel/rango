@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Patchlevel\Rango;
 
 use Patchlevel\Rango\Query\AggregationBuilder;
+use Patchlevel\Rango\Query\ExpressionBuilder;
 use Patchlevel\Rango\Query\FilterBuilder;
 use Patchlevel\Rango\Query\ProjectionBuilder;
 use Patchlevel\Rango\Query\UpdateBuilder;
@@ -32,10 +33,16 @@ final readonly class QueryBuilder
     public function __construct(
         private PDO $pdo,
     ) {
-        $this->filterBuilder = new FilterBuilder($pdo, '_id');
+        $expressionBuilder = new ExpressionBuilder($pdo);
+        $this->filterBuilder = new FilterBuilder($pdo, '_id', $expressionBuilder);
         $this->projectionBuilder = new ProjectionBuilder($pdo);
         $this->updateBuilder = new UpdateBuilder($pdo);
-        $this->aggregationBuilder = new AggregationBuilder($pdo, new FilterBuilder($pdo), $this->projectionBuilder);
+        $this->aggregationBuilder = new AggregationBuilder(
+            $pdo,
+            new FilterBuilder($pdo, null, $expressionBuilder),
+            $this->projectionBuilder,
+            $expressionBuilder,
+        );
     }
 
     /** @param array<string, mixed> $document */

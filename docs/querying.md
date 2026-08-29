@@ -73,6 +73,12 @@ $collection->find(['age' => ['$type' => 'number']]);
 $collection->find(['email' => ['$regex' => '@example\\.com$']]);
 $collection->find(['age' => ['$mod' => [2, 0]]]); // even ages
 ```
+
+`$expr` matches documents against an [aggregation expression](aggregation.md#expressions), which is the way to compare two fields of the same document:
+
+```php
+$collection->find(['$expr' => ['$gt' => ['$spent', '$budget']]]);
+```
 ## Array operators
 
 Array operators inspect array fields. `$all` requires every listed value, `$size` matches by length, and `$elemMatch` matches array elements against a sub-filter:

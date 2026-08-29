@@ -43,7 +43,7 @@ Rango covers the most common MongoDB use cases, but it does not reimplement the 
 * **Geospatial queries** such as `$near` and `$geoWithin`
 * **Capped collections**
 * **Text search** with MongoDB-specific syntax and text indexes
-* **Complex aggregation expressions**, beyond the basic accumulators in [aggregation](aggregation.md)
+* **Advanced aggregation expressions**: arithmetic, string, comparison, boolean, conditional, date, and array operators are supported (see [aggregation](aggregation.md)), but array iteration (`$map`, `$reduce`, `$filter`), `$facet`, and window functions are not
 * **Special index types**: only ascending and descending [indexes](indexes.md) are supported, so geospatial (`2dsphere`), text, sparse, and TTL indexes are not, and the matching `IndexInfo` checks always report `false`
 
 [Upserts](update-operators.md) also need `_id` to be present in the filter, because Rango builds the primary key of the inserted document from it. An upsert without `_id` in the filter raises an exception.
