@@ -10,14 +10,11 @@ use PDO;
 use function explode;
 use function implode;
 use function is_array;
-use function is_numeric;
 use function is_string;
-use function json_encode;
 use function ltrim;
 use function sprintf;
 use function str_contains;
 use function str_replace;
-use function str_starts_with;
 
 final readonly class AggregationBuilder
 {
@@ -25,6 +22,7 @@ final readonly class AggregationBuilder
         private PDO $pdo,
         private FilterBuilder $filterBuilder,
         private ProjectionBuilder $projectionBuilder,
+        private ExpressionBuilder $expressionBuilder,
     ) {
     }
 
@@ -63,8 +61,9 @@ final readonly class AggregationBuilder
                 } elseif ($operator === '$skip') {
                     $currentQuery = sprintf('SELECT * FROM (%s) AS t OFFSET %d', $currentQuery, (int)$value);
                 } elseif ($operator === '$project') {
-                    $column = $this->projectionBuilder->buildProjectionColumn($value, 'data');
-                    $currentQuery = sprintf('SELECT %s AS data FROM (%s) AS t', $column, $currentQuery);
+                    $currentQuery = sprintf('SELECT %s AS data FROM (%s) AS t', $this->projectColumn($value), $currentQuery);
+                } elseif ($operator === '$addFields' || $operator === '$set') {
+                    $currentQuery = sprintf('SELECT %s AS data FROM (%s) AS t', $this->addFieldsExpression($value), $currentQuery);
                 } elseif ($operator === '$unwind') {
                     $spec = is_array($value) ? $value : ['path' => $value];
                     $field = ltrim($spec['path'], '$');
@@ -182,53 +181,125 @@ final readonly class AggregationBuilder
         return $currentQuery;
     }
 
-    private function groupKey(mixed $id): string
+    private function projectColumn(mixed $projection): string
     {
-        if ($id === null) {
-            return "'null'::jsonb";
+        if (!is_array($projection)) {
+            return 'data';
         }
 
-        if (is_array($id)) {
-            $parts = [];
-            foreach ($id as $key => $expr) {
-                $parts[] = $this->pdo->quote((string)$key);
-                $parts[] = $this->valueExpression($expr);
+        $spec = [];
+        foreach ($projection as $key => $value) {
+            $spec[(string)$key] = $value;
+        }
+
+        $hasComputed = false;
+        foreach ($spec as $value) {
+            if (is_string($value) || is_array($value)) {
+                $hasComputed = true;
+
+                break;
+            }
+        }
+
+        if (!$hasComputed) {
+            return $this->projectionBuilder->buildProjectionColumn($spec, 'data');
+        }
+
+        $fields = [];
+        $includeId = true;
+
+        foreach ($spec as $name => $value) {
+            if ($name === '_id' && ($value === 0 || $value === false)) {
+                $includeId = false;
+
+                continue;
             }
 
-            return sprintf('jsonb_build_object(%s)', implode(', ', $parts));
+            if ($value === 0 || $value === false) {
+                continue;
+            }
+
+            $fields[$name] = $value === 1 || $value === true
+                ? $this->fieldReference($name)
+                : $this->expressionBuilder->compile($value);
         }
 
-        return $this->valueExpression($id);
+        if ($includeId && !isset($fields['_id'])) {
+            $fields = ['_id' => "data->'_id'"] + $fields;
+        }
+
+        $parts = [];
+        foreach ($fields as $name => $expression) {
+            $parts[] = $this->pdo->quote($name);
+            $parts[] = $expression;
+        }
+
+        return sprintf('jsonb_build_object(%s)', implode(', ', $parts));
+    }
+
+    private function addFieldsExpression(mixed $fields): string
+    {
+        if (!is_array($fields)) {
+            return 'data';
+        }
+
+        $topLevel = [];
+        $nested = [];
+        foreach ($fields as $key => $value) {
+            $name = (string)$key;
+            if (str_contains($name, '.')) {
+                $nested[$name] = $value;
+            } else {
+                $topLevel[$name] = $value;
+            }
+        }
+
+        $expression = 'data';
+
+        if ($topLevel !== []) {
+            $parts = [];
+            foreach ($topLevel as $name => $value) {
+                $parts[] = $this->pdo->quote($name);
+                $parts[] = $this->expressionBuilder->compile($value);
+            }
+
+            $expression = sprintf('%s || jsonb_build_object(%s)', $expression, implode(', ', $parts));
+        }
+
+        foreach ($nested as $name => $value) {
+            $expression = sprintf(
+                'jsonb_set(%s, %s, %s, true)',
+                $expression,
+                $this->pathLiteral($name),
+                $this->expressionBuilder->compile($value),
+            );
+        }
+
+        return $expression;
+    }
+
+    private function groupKey(mixed $id): string
+    {
+        return $this->expressionBuilder->compile($id);
     }
 
     private function accumulator(mixed $operator, mixed $value): string|null
     {
         return match ($operator) {
-            '$sum' => is_numeric($value)
-                ? sprintf('COALESCE(SUM(%s), 0)::text::jsonb', (float)$value)
-                : sprintf('COALESCE(SUM((%s)::numeric), 0)::text::jsonb', $this->fieldReferenceText(ltrim($value, '$'))),
-            '$avg' => sprintf('AVG((%s)::numeric)::text::jsonb', $this->fieldReferenceText(ltrim($value, '$'))),
-            '$min' => sprintf('MIN((%s)::numeric)::text::jsonb', $this->fieldReferenceText(ltrim($value, '$'))),
-            '$max' => sprintf('MAX((%s)::numeric)::text::jsonb', $this->fieldReferenceText(ltrim($value, '$'))),
-            '$first' => sprintf('(ARRAY_AGG(%s))[1]', $this->fieldReference(ltrim($value, '$'))),
+            '$sum' => sprintf('COALESCE(SUM(%s), 0)::text::jsonb', $this->expressionBuilder->compileNumeric($value)),
+            '$avg' => sprintf('AVG(%s)::text::jsonb', $this->expressionBuilder->compileNumeric($value)),
+            '$min' => sprintf('MIN(%s)::text::jsonb', $this->expressionBuilder->compileNumeric($value)),
+            '$max' => sprintf('MAX(%s)::text::jsonb', $this->expressionBuilder->compileNumeric($value)),
+            '$first' => sprintf('(ARRAY_AGG(%s))[1]', $this->expressionBuilder->compile($value)),
             '$last' => sprintf(
                 '(ARRAY_AGG(%1$s))[ARRAY_LENGTH(ARRAY_AGG(%1$s), 1)]',
-                $this->fieldReference(ltrim($value, '$')),
+                $this->expressionBuilder->compile($value),
             ),
-            '$push' => sprintf('jsonb_agg(%s)', $this->valueExpression($value)),
-            '$addToSet' => sprintf('jsonb_agg(DISTINCT %s)', $this->valueExpression($value)),
+            '$push' => sprintf('jsonb_agg(%s)', $this->expressionBuilder->compile($value)),
+            '$addToSet' => sprintf('jsonb_agg(DISTINCT %s)', $this->expressionBuilder->compile($value)),
             '$count' => 'COUNT(*)::text::jsonb',
             default => null,
         };
-    }
-
-    private function valueExpression(mixed $value): string
-    {
-        if (is_string($value) && str_starts_with($value, '$')) {
-            return $this->fieldReference(ltrim($value, '$'));
-        }
-
-        return sprintf('%s::jsonb', $this->pdo->quote(json_encode($value)));
     }
 
     private function fieldReference(string $path): string
@@ -238,15 +309,6 @@ final readonly class AggregationBuilder
         }
 
         return sprintf('data#>%s', $this->pathLiteral($path));
-    }
-
-    private function fieldReferenceText(string $path): string
-    {
-        if (!str_contains($path, '.')) {
-            return sprintf('data->>%s', $this->pdo->quote($path));
-        }
-
-        return sprintf('data#>>%s', $this->pathLiteral($path));
     }
 
     private function pathLiteral(string $path): string

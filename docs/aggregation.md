@@ -29,7 +29,7 @@ $collection->aggregate([
 ```
 ## Reshaping stages
 
-`$project` selects and renames fields, and `$unwind` expands an array field into one document per element:
+`$project` selects fields with `1`/`0`, and `$unwind` expands an array field into one document per element:
 
 ```php
 $collection->aggregate([
@@ -38,6 +38,34 @@ $collection->aggregate([
 
 $collection->aggregate([
     ['$unwind' => '$tags'],
+]);
+```
+
+`$project` can also rename fields and compute new ones from [expressions](#expressions); once a computed field is present the stage rebuilds the document from the keys you list (plus `_id` unless you set `'_id' => 0`):
+
+```php
+$collection->aggregate([
+    [
+        '$project' => [
+            '_id' => 0,
+            'fullName' => ['$concat' => ['$first', ' ', '$last']],
+            'sku' => '$productId',
+            'total' => ['$multiply' => ['$price', '$quantity']],
+        ],
+    ],
+]);
+```
+
+`$addFields` (and its alias `$set`) adds or overwrites fields while keeping the rest of the document. Dotted keys write into nested objects:
+
+```php
+$collection->aggregate([
+    [
+        '$addFields' => [
+            'total' => ['$multiply' => ['$price', '$quantity']],
+            'audit.reviewed' => true,
+        ],
+    ],
 ]);
 ```
 
@@ -78,18 +106,52 @@ $collection->aggregate([
 ```
 The supported accumulators are `$sum`, `$avg`, `$min`, `$max`, `$first`, `$last`, `$push`, `$addToSet`, and `$count`. Use `['$sum' => 1]` or `['$count' => []]` to count documents in each group.
 
-`_id` may also be a document to group by several keys at once:
+`_id` may also be a document to group by several keys at once, or any [expression](#expressions). Accumulator arguments are expressions too, so you can group over a computed value:
 
 ```php
 $collection->aggregate([
     [
         '$group' => [
             '_id' => ['status' => '$status', 'country' => '$address.country'],
-            'revenue' => ['$sum' => '$total'],
+            'revenue' => ['$sum' => ['$multiply' => ['$price', '$quantity']]],
         ],
     ],
 ]);
 ```
+
+## Expressions
+
+Wherever a stage expects an expression (`$project`, `$addFields`/`$set`, `$group` keys and accumulator arguments) you can use a field reference (`'$field'`, dot notation allowed), a literal, or an operator object. The supported operators are:
+
+* Arithmetic: `$add`, `$subtract`, `$multiply`, `$divide`, `$mod`, `$abs`, `$ceil`, `$floor`, `$round`
+* String: `$concat`, `$toUpper`, `$toLower`, `$substr`, `$strLenCP`
+* Comparison: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`
+* Boolean: `$and`, `$or`, `$not`
+* Conditional: `$cond`, `$switch`, `$ifNull`
+* Type: `$toString`, `$toInt`, `$toLong`, `$toDouble`, `$toBool`
+* Date: `$year`, `$month`, `$dayOfMonth`, `$hour`, `$minute`, `$second`, `$dateToString`
+* `$literal` to pass a value through untouched
+
+```php
+$collection->aggregate([
+    [
+        '$project' => [
+            'label' => [
+                '$cond' => [
+                    ['$gte' => ['$score', 60]],
+                    'pass',
+                    'fail',
+                ],
+            ],
+            'month' => ['$dateToString' => ['format' => '%Y-%m', 'date' => '$createdAt']],
+        ],
+    ],
+]);
+```
+
+:::note
+Date operators expect ISO 8601 date strings, which is how Rango stores dates in JSONB. `$$ROOT` and `$$NOW` are the only system variables.
+:::
 
 ## Counting
 
@@ -121,7 +183,7 @@ $client->selectCollection('app', 'users')->aggregate([
 Each `users` document gains an `orders` array holding the matching `orders` documents, or an empty array when there are none.
 
 :::note
-Only the stages and accumulators listed here are implemented. Complex aggregation expressions are out of scope, as noted under [limitations](how-it-works.md#limitations).
+Only the stages, accumulators, and [expression](#expressions) operators listed here are implemented. Array operators (`$map`, `$filter`, `$reduce`, `$slice`), `$facet`, and window functions are out of scope, as noted under [limitations](how-it-works.md#limitations).
 :::
 
 ## Learn more
