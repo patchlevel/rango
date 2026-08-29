@@ -24,6 +24,7 @@ ecosystem without giving up the flexible document-based development experience o
 * [Projection and sorting](https://patchlevel.dev/docs/rango/latest/querying#projection) with dot-notation support
 * [Aggregation pipelines](https://patchlevel.dev/docs/rango/latest/aggregation) with `$match`, `$group`, `$unwind`, and `$lookup`
 * [Bulk writes](https://patchlevel.dev/docs/rango/latest/crud-operations#bulk-writes) wrapped in a single transaction
+* [Transactions](https://patchlevel.dev/docs/rango/latest/transactions) via `startSession` and `withTransaction`
 * [Index management](https://patchlevel.dev/docs/rango/latest/indexes) backed by native PostgreSQL indexes
 
 ## Installation
