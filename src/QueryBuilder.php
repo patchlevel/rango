@@ -33,14 +33,15 @@ final readonly class QueryBuilder
     public function __construct(
         private PDO $pdo,
     ) {
-        $this->filterBuilder = new FilterBuilder($pdo, '_id');
+        $expressionBuilder = new ExpressionBuilder($pdo);
+        $this->filterBuilder = new FilterBuilder($pdo, '_id', $expressionBuilder);
         $this->projectionBuilder = new ProjectionBuilder($pdo);
         $this->updateBuilder = new UpdateBuilder($pdo);
         $this->aggregationBuilder = new AggregationBuilder(
             $pdo,
-            new FilterBuilder($pdo),
+            new FilterBuilder($pdo, null, $expressionBuilder),
             $this->projectionBuilder,
-            new ExpressionBuilder($pdo),
+            $expressionBuilder,
         );
     }
 

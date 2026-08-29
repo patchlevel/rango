@@ -143,6 +143,22 @@ final readonly class ExpressionBuilder
             '$second' => $this->datePart('second', $argument),
             '$dateToString' => $this->dateToString($argument),
 
+            '$size' => sprintf(
+                'to_jsonb(CASE WHEN jsonb_typeof(%1$s) = \'array\' THEN jsonb_array_length(%1$s) END)',
+                $this->compile($this->firstOperand($argument)),
+            ),
+            '$isArray' => sprintf(
+                'to_jsonb(COALESCE(jsonb_typeof(%s) = \'array\', false))',
+                $this->compile($this->firstOperand($argument)),
+            ),
+            '$arrayElemAt' => $this->arrayElemAt($this->operands($argument)),
+            '$first' => sprintf('(%s) -> 0', $this->compile($this->firstOperand($argument))),
+            '$last' => sprintf('(%s) -> -1', $this->compile($this->firstOperand($argument))),
+            '$in' => $this->inArray($this->operands($argument)),
+            '$concatArrays' => $this->concatArrays($this->operands($argument)),
+            '$reverseArray' => $this->reverseArray($this->firstOperand($argument)),
+            '$slice' => $this->slice($this->operands($argument)),
+
             default => throw new InvalidArgumentException(
                 sprintf('Unsupported aggregation expression operator "%s"', $operator),
             ),
@@ -357,5 +373,95 @@ final readonly class ExpressionBuilder
             $this->text($argument['date'] ?? null),
             $this->pdo->quote($pgFormat),
         );
+    }
+
+    /** @param list<mixed> $operands */
+    private function arrayElemAt(array $operands): string
+    {
+        return sprintf(
+            '(%s) -> %s',
+            $this->compile($operands[0] ?? null),
+            $this->intExpression($operands[1] ?? 0),
+        );
+    }
+
+    /** @param list<mixed> $operands */
+    private function inArray(array $operands): string
+    {
+        return sprintf(
+            'to_jsonb(EXISTS (SELECT 1 FROM jsonb_array_elements(%s) AS __in(__v) WHERE __in.__v = %s))',
+            $this->arrayCase($operands[1] ?? null),
+            $this->compile($operands[0] ?? null),
+        );
+    }
+
+    /** @param list<mixed> $operands */
+    private function concatArrays(array $operands): string
+    {
+        if ($operands === []) {
+            return "'[]'::jsonb";
+        }
+
+        $parts = array_map(fn (mixed $operand): string => sprintf('(%s)', $this->compile($operand)), $operands);
+
+        return implode(' || ', $parts);
+    }
+
+    private function reverseArray(mixed $argument): string
+    {
+        $sql = $this->compile($argument);
+
+        return sprintf(
+            'CASE WHEN jsonb_typeof(%1$s) = \'array\' THEN ('
+            . 'SELECT COALESCE(jsonb_agg(__r.__v ORDER BY __r.__ord DESC), \'[]\'::jsonb)'
+            . ' FROM jsonb_array_elements(%1$s) WITH ORDINALITY AS __r(__v, __ord)) END',
+            $sql,
+        );
+    }
+
+    /** @param list<mixed> $operands */
+    private function slice(array $operands): string
+    {
+        $array = $this->arrayCase($operands[0] ?? null);
+
+        if (array_key_exists(2, $operands)) {
+            $position = $this->intExpression($operands[1] ?? 0);
+            $count = $this->intExpression($operands[2] ?? 0);
+            $condition = sprintf(
+                'CASE WHEN %1$s >= 0 THEN q.__ord > %1$s AND q.__ord <= %1$s + %2$s'
+                . ' ELSE q.__ord > q.__total + %1$s AND q.__ord <= q.__total + %1$s + %2$s END',
+                $position,
+                $count,
+            );
+        } else {
+            $count = $this->intExpression($operands[1] ?? 0);
+            $condition = sprintf(
+                'CASE WHEN %1$s >= 0 THEN q.__ord <= %1$s ELSE q.__ord > q.__total + %1$s END',
+                $count,
+            );
+        }
+
+        return sprintf(
+            '(SELECT COALESCE(jsonb_agg(q.__v ORDER BY q.__ord), \'[]\'::jsonb) FROM ('
+            . 'SELECT __s.__v AS __v, __s.__ord AS __ord, count(*) OVER () AS __total'
+            . ' FROM jsonb_array_elements(%s) WITH ORDINALITY AS __s(__v, __ord)) q WHERE %s)',
+            $array,
+            $condition,
+        );
+    }
+
+    private function arrayCase(mixed $expression): string
+    {
+        $sql = $this->compile($expression);
+
+        return sprintf(
+            'CASE WHEN jsonb_typeof(%1$s) = \'array\' THEN %1$s ELSE \'[]\'::jsonb END',
+            $sql,
+        );
+    }
+
+    private function intExpression(mixed $expression): string
+    {
+        return sprintf('(%s)::int', $this->compileNumeric($expression));
     }
 }

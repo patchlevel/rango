@@ -17,11 +17,12 @@ foreach ($cursor as $row) {
 ```
 ## Filtering and ordering stages
 
-`$match` filters documents using the same syntax as [query operators](querying.md). `$sort`, `$limit`, and `$skip` order and page the stream just like the [read options](querying.md#sorting):
+`$match` filters documents using the same syntax as [query operators](querying.md), including [`$expr`](querying.md#evaluation-operators) for [expression](#expressions)-based conditions. `$sort`, `$limit`, and `$skip` order and page the stream just like the [read options](querying.md#sorting):
 
 ```php
 $collection->aggregate([
     ['$match' => ['age' => ['$gte' => 18]]],
+    ['$match' => ['$expr' => ['$gt' => ['$spent', '$budget']]]],
     ['$sort' => ['age' => -1]],
     ['$skip' => 10],
     ['$limit' => 5],
@@ -66,6 +67,16 @@ $collection->aggregate([
             'audit.reviewed' => true,
         ],
     ],
+]);
+```
+
+`$unset` removes one or more fields, and `$replaceRoot` / `$replaceWith` promote an [expression](#expressions) to be the new document:
+
+```php
+$collection->aggregate([
+    ['$unset' => ['ssn', 'audit.internalNote']],
+    ['$replaceRoot' => ['newRoot' => '$profile']],
+    ['$replaceWith' => ['id' => '$_id', 'name' => '$profile.handle']],
 ]);
 ```
 
@@ -130,6 +141,7 @@ Wherever a stage expects an expression (`$project`, `$addFields`/`$set`, `$group
 * Conditional: `$cond`, `$switch`, `$ifNull`
 * Type: `$toString`, `$toInt`, `$toLong`, `$toDouble`, `$toBool`
 * Date: `$year`, `$month`, `$dayOfMonth`, `$hour`, `$minute`, `$second`, `$dateToString`
+* Array: `$size`, `$isArray`, `$arrayElemAt`, `$first`, `$last`, `$in`, `$concatArrays`, `$reverseArray`, `$slice`
 * `$literal` to pass a value through untouched
 
 ```php
@@ -164,6 +176,15 @@ $collection->aggregate([
 ]);
 ```
 
+`$sortByCount` groups by an [expression](#expressions) and returns `{_id, count}` documents ordered by `count` descending. It is shorthand for a `$group` with `['$sum' => 1]` followed by a `$sort`:
+
+```php
+$collection->aggregate([
+    ['$unwind' => '$tags'],
+    ['$sortByCount' => '$tags'],
+]);
+```
+
 ## Joining collections
 
 `$lookup` performs a left outer join against another collection in the same database. It matches `localField` against `foreignField` and stores the matches in the array named by `as`:
@@ -183,7 +204,7 @@ $client->selectCollection('app', 'users')->aggregate([
 Each `users` document gains an `orders` array holding the matching `orders` documents, or an empty array when there are none.
 
 :::note
-Only the stages, accumulators, and [expression](#expressions) operators listed here are implemented. Array operators (`$map`, `$filter`, `$reduce`, `$slice`), `$facet`, and window functions are out of scope, as noted under [limitations](how-it-works.md#limitations).
+Only the stages, accumulators, and [expression](#expressions) operators listed here are implemented. Array iteration (`$map`, `$filter`, `$reduce`), `$facet`, and window functions are out of scope, as noted under [limitations](how-it-works.md#limitations).
 :::
 
 ## Learn more

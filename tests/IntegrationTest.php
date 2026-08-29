@@ -1260,6 +1260,159 @@ abstract class IntegrationTest extends TestCase
         self::assertEquals(3, $docs[1]['total']);
     }
 
+    public function testExprInFind(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'spent' => 120, 'budget' => 100],
+            ['_id' => '2', 'spent' => 80, 'budget' => 100],
+            ['_id' => '3', 'spent' => 100, 'budget' => 100],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->find([
+            '$expr' => ['$gt' => ['$spent', '$budget']],
+        ]));
+        $ids = array_map(static fn (array $doc) => $doc['_id'], $docs);
+        sort($ids);
+
+        self::assertSame(['1'], $ids);
+    }
+
+    public function testExprInMatch(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'a' => 5, 'b' => 2],
+            ['_id' => '2', 'a' => 1, 'b' => 4],
+            ['_id' => '3', 'a' => 3, 'b' => 3],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$match' => ['$expr' => ['$gte' => ['$a', '$b']]]],
+            ['$sort' => ['_id' => 1]],
+        ]));
+
+        self::assertSame(['1', '3'], array_map(static fn (array $doc) => $doc['_id'], $docs));
+    }
+
+    public function testUnsetStage(): void
+    {
+        $this->collection->insertOne([
+            '_id' => '1',
+            'name' => 'foo',
+            'secret' => 'hide',
+            'meta' => ['keep' => 1, 'drop' => 2],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$unset' => ['secret', 'meta.drop']],
+        ]));
+
+        $doc = $docs[0];
+        self::assertSame('foo', $doc['name']);
+        self::assertArrayNotHasKey('secret', $doc);
+        $meta = $doc['meta'];
+        self::assertIsArray($meta);
+        self::assertSame(1, $meta['keep']);
+        self::assertArrayNotHasKey('drop', $meta);
+
+        $single = $this->toPlainArrays($this->collection->aggregate([
+            ['$unset' => 'name'],
+        ]));
+        self::assertArrayNotHasKey('name', $single[0]);
+    }
+
+    public function testReplaceRootStage(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'profile' => ['handle' => 'ada', 'age' => 30]],
+            ['_id' => '2', 'profile' => ['handle' => 'alan', 'age' => 40]],
+        ]);
+
+        $viaRoot = $this->toPlainArrays($this->collection->aggregate([
+            ['$sort' => ['_id' => 1]],
+            ['$replaceRoot' => ['newRoot' => '$profile']],
+        ]));
+        self::assertSame('ada', $viaRoot[0]['handle']);
+        self::assertSame(30, $viaRoot[0]['age']);
+        self::assertArrayNotHasKey('profile', $viaRoot[0]);
+
+        $viaWith = $this->toPlainArrays($this->collection->aggregate([
+            ['$sort' => ['_id' => 1]],
+            ['$replaceWith' => ['id' => '$_id', 'name' => '$profile.handle']],
+        ]));
+        self::assertSame('1', $viaWith[0]['id']);
+        self::assertSame('ada', $viaWith[0]['name']);
+    }
+
+    public function testSortByCountStage(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'type' => 'a'],
+            ['_id' => '2', 'type' => 'b'],
+            ['_id' => '3', 'type' => 'a'],
+            ['_id' => '4', 'type' => 'a'],
+            ['_id' => '5', 'type' => 'b'],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$sortByCount' => '$type'],
+        ]));
+
+        self::assertCount(2, $docs);
+        self::assertSame('a', $docs[0]['_id']);
+        self::assertEquals(3, $docs[0]['count']);
+        self::assertSame('b', $docs[1]['_id']);
+        self::assertEquals(2, $docs[1]['count']);
+    }
+
+    public function testArrayExpressionOperators(): void
+    {
+        $this->collection->insertOne([
+            '_id' => '1',
+            'nums' => [10, 20, 30, 40],
+            'tags' => ['a', 'b', 'c'],
+            'more' => ['d', 'e'],
+            'scalar' => 5,
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            [
+                '$project' => [
+                    '_id' => 0,
+                    'size' => ['$size' => '$nums'],
+                    'firstNum' => ['$first' => '$nums'],
+                    'lastNum' => ['$last' => '$nums'],
+                    'third' => ['$arrayElemAt' => ['$nums', 2]],
+                    'fromEnd' => ['$arrayElemAt' => ['$nums', -1]],
+                    'hasB' => ['$in' => ['b', '$tags']],
+                    'hasZ' => ['$in' => ['z', '$tags']],
+                    'numsIsArray' => ['$isArray' => '$nums'],
+                    'scalarIsArray' => ['$isArray' => '$scalar'],
+                    'combined' => ['$concatArrays' => ['$tags', '$more']],
+                    'reversed' => ['$reverseArray' => '$tags'],
+                    'firstTwo' => ['$slice' => ['$nums', 2]],
+                    'lastTwo' => ['$slice' => ['$nums', -2]],
+                    'middle' => ['$slice' => ['$nums', 1, 2]],
+                ],
+            ],
+        ]));
+
+        $doc = $docs[0];
+        self::assertSame(4, $doc['size']);
+        self::assertSame(10, $doc['firstNum']);
+        self::assertSame(40, $doc['lastNum']);
+        self::assertSame(30, $doc['third']);
+        self::assertSame(40, $doc['fromEnd']);
+        self::assertTrue($doc['hasB']);
+        self::assertFalse($doc['hasZ']);
+        self::assertTrue($doc['numsIsArray']);
+        self::assertFalse($doc['scalarIsArray']);
+        self::assertSame(['a', 'b', 'c', 'd', 'e'], $doc['combined']);
+        self::assertSame(['c', 'b', 'a'], $doc['reversed']);
+        self::assertSame([10, 20], $doc['firstTwo']);
+        self::assertSame([30, 40], $doc['lastTwo']);
+        self::assertSame([20, 30], $doc['middle']);
+    }
+
     /**
      * @param iterable<mixed> $result
      *

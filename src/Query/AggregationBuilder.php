@@ -7,9 +7,11 @@ namespace Patchlevel\Rango\Query;
 use Patchlevel\Rango\Sql\Identifier;
 use PDO;
 
+use function array_key_exists;
 use function explode;
 use function implode;
 use function is_array;
+use function is_scalar;
 use function is_string;
 use function ltrim;
 use function sprintf;
@@ -64,6 +66,13 @@ final readonly class AggregationBuilder
                     $currentQuery = sprintf('SELECT %s AS data FROM (%s) AS t', $this->projectColumn($value), $currentQuery);
                 } elseif ($operator === '$addFields' || $operator === '$set') {
                     $currentQuery = sprintf('SELECT %s AS data FROM (%s) AS t', $this->addFieldsExpression($value), $currentQuery);
+                } elseif ($operator === '$unset') {
+                    $currentQuery = sprintf('SELECT %s AS data FROM (%s) AS t', $this->unsetExpression($value), $currentQuery);
+                } elseif ($operator === '$replaceRoot') {
+                    $newRoot = is_array($value) && array_key_exists('newRoot', $value) ? $value['newRoot'] : $value;
+                    $currentQuery = sprintf('SELECT %s AS data FROM (%s) AS t', $this->expressionBuilder->compile($newRoot), $currentQuery);
+                } elseif ($operator === '$replaceWith') {
+                    $currentQuery = sprintf('SELECT %s AS data FROM (%s) AS t', $this->expressionBuilder->compile($value), $currentQuery);
                 } elseif ($operator === '$unwind') {
                     $spec = is_array($value) ? $value : ['path' => $value];
                     $field = ltrim($spec['path'], '$');
@@ -130,6 +139,16 @@ final readonly class AggregationBuilder
                         'SELECT jsonb_build_object(%s, COUNT(*)::text::jsonb) AS data FROM (%s) AS t HAVING COUNT(*) > 0',
                         $this->pdo->quote($value),
                         $currentQuery,
+                    );
+                } elseif ($operator === '$sortByCount') {
+                    $groupBy = $this->groupKey($value);
+                    $currentQuery = sprintf(
+                        'SELECT jsonb_build_object(%s, %s, %s, COUNT(*)::text::jsonb) AS data FROM (%s) AS t GROUP BY %s ORDER BY COUNT(*) DESC',
+                        $this->pdo->quote('_id'),
+                        $groupBy,
+                        $this->pdo->quote('count'),
+                        $currentQuery,
+                        $groupBy,
                     );
                 } elseif ($operator === '$lookup') {
                     $from = $value['from'];
@@ -273,6 +292,27 @@ final readonly class AggregationBuilder
                 $this->pathLiteral($name),
                 $this->expressionBuilder->compile($value),
             );
+        }
+
+        return $expression;
+    }
+
+    private function unsetExpression(mixed $fields): string
+    {
+        $list = is_array($fields) ? $fields : [$fields];
+
+        $expression = 'data';
+        foreach ($list as $field) {
+            if (!is_scalar($field)) {
+                continue;
+            }
+
+            $name = (string)$field;
+            if (str_contains($name, '.')) {
+                $expression = sprintf('(%s) #- %s::text[]', $expression, $this->pathLiteral($name));
+            } else {
+                $expression = sprintf('(%s) - %s', $expression, $this->pdo->quote($name));
+            }
         }
 
         return $expression;
