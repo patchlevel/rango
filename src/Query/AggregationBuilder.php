@@ -9,11 +9,13 @@ use PDO;
 
 use function explode;
 use function implode;
+use function is_array;
 use function is_numeric;
 use function is_string;
 use function json_encode;
 use function ltrim;
 use function sprintf;
+use function str_contains;
 use function str_replace;
 use function str_starts_with;
 
@@ -64,27 +66,43 @@ final readonly class AggregationBuilder
                     $column = $this->projectionBuilder->buildProjectionColumn($value, 'data');
                     $currentQuery = sprintf('SELECT %s AS data FROM (%s) AS t', $column, $currentQuery);
                 } elseif ($operator === '$unwind') {
-                    $field = ltrim($value, '$');
-                    $currentQuery = sprintf(
-                        'SELECT jsonb_set(data, %1$s, x) AS data FROM (%2$s) AS t, jsonb_array_elements(CASE WHEN jsonb_typeof(data->%3$s) = \'array\' THEN data->%3$s ELSE \'[]\'::jsonb END) x',
-                        $this->pdo->quote('{' . $field . '}'),
-                        $currentQuery,
-                        $this->pdo->quote($field),
+                    $spec = is_array($value) ? $value : ['path' => $value];
+                    $field = ltrim($spec['path'], '$');
+                    $preserve = (bool)($spec['preserveNullAndEmptyArrays'] ?? false);
+                    $includeArrayIndex = $spec['includeArrayIndex'] ?? null;
+
+                    $source = $this->fieldReference($field);
+                    $arrayExpr = sprintf(
+                        'CASE WHEN jsonb_typeof(%1$s) = \'array\' THEN %1$s'
+                        . ' WHEN %1$s IS NULL OR jsonb_typeof(%1$s) = \'null\' THEN \'[]\'::jsonb'
+                        . ' ELSE jsonb_build_array(%1$s) END',
+                        $source,
                     );
-                } elseif ($operator === '$group') {
-                    $id = $value['_id'] ?? null;
-                    $fields = [];
-                    $groupBy = '1';
-                    if ($id !== null) {
-                        if (is_string($id) && str_starts_with($id, '$')) {
-                            $groupBy = sprintf('data->%s', $this->pdo->quote(ltrim($id, '$')));
-                        } else {
-                            $groupBy = $this->pdo->quote(json_encode($id));
-                        }
+
+                    $dataExpr = sprintf(
+                        'CASE WHEN u.elem IS NULL THEN data ELSE jsonb_set(data, %s, u.elem, true) END',
+                        $this->pathLiteral($field),
+                    );
+
+                    if (is_string($includeArrayIndex) && $includeArrayIndex !== '') {
+                        $dataExpr = sprintf(
+                            'jsonb_set(%s, %s, CASE WHEN u.ord IS NULL THEN \'null\'::jsonb ELSE to_jsonb(u.ord - 1) END, true)',
+                            $dataExpr,
+                            $this->pathLiteral(ltrim($includeArrayIndex, '$')),
+                        );
                     }
 
-                    $fields[] = $this->pdo->quote('_id');
-                    $fields[] = $groupBy;
+                    $currentQuery = sprintf(
+                        'SELECT %s AS data FROM (%s) AS t %s LATERAL jsonb_array_elements(%s) WITH ORDINALITY AS u(elem, ord) ON true',
+                        $dataExpr,
+                        $currentQuery,
+                        $preserve ? 'LEFT JOIN' : 'INNER JOIN',
+                        $arrayExpr,
+                    );
+                } elseif ($operator === '$group') {
+                    $groupBy = $this->groupKey($value['_id'] ?? null);
+
+                    $fields = [$this->pdo->quote('_id'), $groupBy];
 
                     foreach ($value as $alias => $expr) {
                         if ($alias === '_id') {
@@ -92,29 +110,13 @@ final readonly class AggregationBuilder
                         }
 
                         foreach ($expr as $accOp => $accVal) {
-                            if ($accOp === '$sum') {
-                                $fields[] = $this->pdo->quote($alias);
-                                if (is_numeric($accVal)) {
-                                    $fields[] = sprintf('SUM(%s)::text::jsonb', (float)$accVal);
-                                } else {
-                                    $fields[] = sprintf('SUM((data->>%s)::numeric)::text::jsonb', $this->pdo->quote(ltrim($accVal, '$')));
-                                }
-                            } elseif ($accOp === '$avg') {
-                                $fields[] = $this->pdo->quote($alias);
-                                $fields[] = sprintf('AVG((data->>%s)::numeric)::text::jsonb', $this->pdo->quote(ltrim($accVal, '$')));
-                            } elseif ($accOp === '$min') {
-                                $fields[] = $this->pdo->quote($alias);
-                                $fields[] = sprintf('MIN((data->>%s)::numeric)::text::jsonb', $this->pdo->quote(ltrim($accVal, '$')));
-                            } elseif ($accOp === '$max') {
-                                $fields[] = $this->pdo->quote($alias);
-                                $fields[] = sprintf('MAX((data->>%s)::numeric)::text::jsonb', $this->pdo->quote(ltrim($accVal, '$')));
-                            } elseif ($accOp === '$first') {
-                                $fields[] = $this->pdo->quote($alias);
-                                $fields[] = sprintf('(ARRAY_AGG(data->%s))[1]', $this->pdo->quote(ltrim($accVal, '$')));
-                            } elseif ($accOp === '$last') {
-                                $fields[] = $this->pdo->quote($alias);
-                                $fields[] = sprintf('(ARRAY_AGG(data->%s))[ARRAY_LENGTH(ARRAY_AGG(data->%s), 1)]', $this->pdo->quote(ltrim($accVal, '$')), $this->pdo->quote(ltrim($accVal, '$')));
+                            $accumulator = $this->accumulator($accOp, $accVal);
+                            if ($accumulator === null) {
+                                continue;
                             }
+
+                            $fields[] = $this->pdo->quote($alias);
+                            $fields[] = $accumulator;
                         }
                     }
 
@@ -123,6 +125,12 @@ final readonly class AggregationBuilder
                         implode(', ', $fields),
                         $currentQuery,
                         $groupBy,
+                    );
+                } elseif ($operator === '$count') {
+                    $currentQuery = sprintf(
+                        'SELECT jsonb_build_object(%s, COUNT(*)::text::jsonb) AS data FROM (%s) AS t HAVING COUNT(*) > 0',
+                        $this->pdo->quote($value),
+                        $currentQuery,
                     );
                 } elseif ($operator === '$lookup') {
                     $from = $value['from'];
@@ -172,5 +180,77 @@ final readonly class AggregationBuilder
         }
 
         return $currentQuery;
+    }
+
+    private function groupKey(mixed $id): string
+    {
+        if ($id === null) {
+            return "'null'::jsonb";
+        }
+
+        if (is_array($id)) {
+            $parts = [];
+            foreach ($id as $key => $expr) {
+                $parts[] = $this->pdo->quote((string)$key);
+                $parts[] = $this->valueExpression($expr);
+            }
+
+            return sprintf('jsonb_build_object(%s)', implode(', ', $parts));
+        }
+
+        return $this->valueExpression($id);
+    }
+
+    private function accumulator(mixed $operator, mixed $value): string|null
+    {
+        return match ($operator) {
+            '$sum' => is_numeric($value)
+                ? sprintf('COALESCE(SUM(%s), 0)::text::jsonb', (float)$value)
+                : sprintf('COALESCE(SUM((%s)::numeric), 0)::text::jsonb', $this->fieldReferenceText(ltrim($value, '$'))),
+            '$avg' => sprintf('AVG((%s)::numeric)::text::jsonb', $this->fieldReferenceText(ltrim($value, '$'))),
+            '$min' => sprintf('MIN((%s)::numeric)::text::jsonb', $this->fieldReferenceText(ltrim($value, '$'))),
+            '$max' => sprintf('MAX((%s)::numeric)::text::jsonb', $this->fieldReferenceText(ltrim($value, '$'))),
+            '$first' => sprintf('(ARRAY_AGG(%s))[1]', $this->fieldReference(ltrim($value, '$'))),
+            '$last' => sprintf(
+                '(ARRAY_AGG(%1$s))[ARRAY_LENGTH(ARRAY_AGG(%1$s), 1)]',
+                $this->fieldReference(ltrim($value, '$')),
+            ),
+            '$push' => sprintf('jsonb_agg(%s)', $this->valueExpression($value)),
+            '$addToSet' => sprintf('jsonb_agg(DISTINCT %s)', $this->valueExpression($value)),
+            '$count' => 'COUNT(*)::text::jsonb',
+            default => null,
+        };
+    }
+
+    private function valueExpression(mixed $value): string
+    {
+        if (is_string($value) && str_starts_with($value, '$')) {
+            return $this->fieldReference(ltrim($value, '$'));
+        }
+
+        return sprintf('%s::jsonb', $this->pdo->quote(json_encode($value)));
+    }
+
+    private function fieldReference(string $path): string
+    {
+        if (!str_contains($path, '.')) {
+            return sprintf('data->%s', $this->pdo->quote($path));
+        }
+
+        return sprintf('data#>%s', $this->pathLiteral($path));
+    }
+
+    private function fieldReferenceText(string $path): string
+    {
+        if (!str_contains($path, '.')) {
+            return sprintf('data->>%s', $this->pdo->quote($path));
+        }
+
+        return sprintf('data#>>%s', $this->pathLiteral($path));
+    }
+
+    private function pathLiteral(string $path): string
+    {
+        return $this->pdo->quote('{' . str_replace('.', ',', $path) . '}');
     }
 }

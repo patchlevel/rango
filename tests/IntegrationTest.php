@@ -20,6 +20,7 @@ use function array_map;
 use function array_values;
 use function is_array;
 use function iterator_to_array;
+use function json_decode;
 use function json_encode;
 use function sort;
 
@@ -981,6 +982,173 @@ abstract class IntegrationTest extends TestCase
         self::assertEquals(20, $docs[1]['total']);
         self::assertEquals('foo', $docs[2]['_id']);
         self::assertEquals(10, $docs[2]['total']);
+    }
+
+    public function testUnwindWithIncludeArrayIndex(): void
+    {
+        $this->collection->insertOne(['_id' => '1', 'items' => ['a', 'b', 'c']]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$unwind' => ['path' => '$items', 'includeArrayIndex' => 'idx']],
+        ]));
+
+        self::assertCount(3, $docs);
+        self::assertSame('a', $docs[0]['items']);
+        self::assertSame(0, $docs[0]['idx']);
+        self::assertSame('b', $docs[1]['items']);
+        self::assertSame(1, $docs[1]['idx']);
+        self::assertSame('c', $docs[2]['items']);
+        self::assertSame(2, $docs[2]['idx']);
+    }
+
+    public function testUnwindPreserveNullAndEmptyArrays(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'items' => ['a', 'b']],
+            ['_id' => '2', 'items' => []],
+            ['_id' => '3'],
+            ['_id' => '4', 'items' => null],
+        ]);
+
+        $preserved = $this->toPlainArrays($this->collection->aggregate([
+            ['$unwind' => ['path' => '$items', 'preserveNullAndEmptyArrays' => true]],
+            ['$sort' => ['_id' => 1]],
+        ]));
+        self::assertSame(
+            ['1', '1', '2', '3', '4'],
+            array_map(static fn (array $doc) => $doc['_id'], $preserved),
+        );
+
+        $default = $this->toPlainArrays($this->collection->aggregate([
+            ['$unwind' => '$items'],
+            ['$sort' => ['_id' => 1]],
+        ]));
+        self::assertSame(
+            ['1', '1'],
+            array_map(static fn (array $doc) => $doc['_id'], $default),
+        );
+    }
+
+    public function testUnwindScalarField(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'item' => 'solo'],
+            ['_id' => '2', 'item' => ['x', 'y']],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$unwind' => '$item'],
+            ['$sort' => ['_id' => 1]],
+        ]));
+
+        self::assertCount(3, $docs);
+        self::assertSame('solo', $docs[0]['item']);
+        self::assertSame('x', $docs[1]['item']);
+        self::assertSame('y', $docs[2]['item']);
+    }
+
+    public function testGroupByMultipleKeys(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'store' => 'a', 'type' => 'x', 'amount' => 10],
+            ['_id' => '2', 'store' => 'a', 'type' => 'x', 'amount' => 5],
+            ['_id' => '3', 'store' => 'a', 'type' => 'y', 'amount' => 20],
+            ['_id' => '4', 'store' => 'b', 'type' => 'x', 'amount' => 7],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            [
+                '$group' => [
+                    '_id' => ['store' => '$store', 'type' => '$type'],
+                    'total' => ['$sum' => '$amount'],
+                ],
+            ],
+        ]));
+
+        $rows = [];
+        foreach ($docs as $doc) {
+            $id = $doc['_id'];
+            self::assertIsArray($id);
+            $rows[] = ['store' => $id['store'], 'type' => $id['type'], 'total' => $doc['total']];
+        }
+
+        self::assertEqualsCanonicalizing([
+            ['store' => 'a', 'type' => 'x', 'total' => 15],
+            ['store' => 'a', 'type' => 'y', 'total' => 20],
+            ['store' => 'b', 'type' => 'x', 'total' => 7],
+        ], $rows);
+    }
+
+    public function testGroupPushAndAddToSet(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'cat' => 'A', 'tag' => 'x'],
+            ['_id' => '2', 'cat' => 'A', 'tag' => 'y'],
+            ['_id' => '3', 'cat' => 'A', 'tag' => 'x'],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            [
+                '$group' => [
+                    '_id' => '$cat',
+                    'all' => ['$push' => '$tag'],
+                    'unique' => ['$addToSet' => '$tag'],
+                ],
+            ],
+        ]));
+
+        self::assertCount(1, $docs);
+
+        $all = $docs[0]['all'];
+        self::assertIsArray($all);
+        sort($all);
+        self::assertSame(['x', 'x', 'y'], $all);
+
+        $unique = $docs[0]['unique'];
+        self::assertIsArray($unique);
+        sort($unique);
+        self::assertSame(['x', 'y'], $unique);
+    }
+
+    public function testCountStage(): void
+    {
+        $this->collection->insertMany([
+            ['_id' => '1', 'status' => 'A'],
+            ['_id' => '2', 'status' => 'B'],
+            ['_id' => '3', 'status' => 'A'],
+        ]);
+
+        $docs = $this->toPlainArrays($this->collection->aggregate([
+            ['$match' => ['status' => 'A']],
+            ['$count' => 'total'],
+        ]));
+
+        self::assertCount(1, $docs);
+        self::assertSame(2, $docs[0]['total']);
+
+        $empty = $this->toPlainArrays($this->collection->aggregate([
+            ['$match' => ['status' => 'Z']],
+            ['$count' => 'total'],
+        ]));
+        self::assertCount(0, $empty);
+    }
+
+    /**
+     * @param iterable<mixed> $result
+     *
+     * @return list<array<mixed, mixed>>
+     */
+    private function toPlainArrays(iterable $result): array
+    {
+        $documents = [];
+
+        foreach ($result as $document) {
+            $decoded = json_decode((string)json_encode($document), true);
+            self::assertIsArray($decoded);
+            $documents[] = $decoded;
+        }
+
+        return $documents;
     }
 
     public function testCombinedUpdate(): void

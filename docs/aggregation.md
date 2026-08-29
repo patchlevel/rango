@@ -40,6 +40,22 @@ $collection->aggregate([
     ['$unwind' => '$tags'],
 ]);
 ```
+
+`$unwind` also accepts the document form with `preserveNullAndEmptyArrays` to keep documents whose array is missing, `null`, or empty, and `includeArrayIndex` to add the position of each element:
+
+```php
+$collection->aggregate([
+    [
+        '$unwind' => [
+            'path' => '$tags',
+            'preserveNullAndEmptyArrays' => true,
+            'includeArrayIndex' => 'tagIndex',
+        ],
+    ],
+]);
+```
+
+A field that is neither an array nor `null` is treated as a single-element array.
 ## Grouping
 
 `$group` buckets documents by an `_id` expression and computes accumulators per bucket. A field reference is written with a leading `$`:
@@ -54,11 +70,37 @@ $collection->aggregate([
             'average' => ['$avg' => '$total'],
             'highest' => ['$max' => '$total'],
             'lowest' => ['$min' => '$total'],
+            'items' => ['$push' => '$sku'],
+            'customers' => ['$addToSet' => '$customerId'],
         ],
     ],
 ]);
 ```
-The supported accumulators are `$sum`, `$avg`, `$min`, `$max`, `$first`, and `$last`. Use `['$sum' => 1]` to count documents in each group.
+The supported accumulators are `$sum`, `$avg`, `$min`, `$max`, `$first`, `$last`, `$push`, `$addToSet`, and `$count`. Use `['$sum' => 1]` or `['$count' => []]` to count documents in each group.
+
+`_id` may also be a document to group by several keys at once:
+
+```php
+$collection->aggregate([
+    [
+        '$group' => [
+            '_id' => ['status' => '$status', 'country' => '$address.country'],
+            'revenue' => ['$sum' => '$total'],
+        ],
+    ],
+]);
+```
+
+## Counting
+
+`$count` collapses the stream into a single document holding the number of documents that reached it:
+
+```php
+$collection->aggregate([
+    ['$match' => ['status' => 'paid']],
+    ['$count' => 'paidOrders'],
+]);
+```
 
 ## Joining collections
 
