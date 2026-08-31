@@ -28,6 +28,8 @@ abstract class IntegrationTest extends TestCase
 {
     protected MongoDbCollection|RangoCollection $collection;
 
+    protected MongoDbClient|RangoClient $client;
+
     abstract protected function getClient(): MongoDbClient|RangoClient;
 
     abstract protected function getCollection(): MongoDbCollection|RangoCollection;
@@ -38,6 +40,7 @@ abstract class IntegrationTest extends TestCase
     {
         parent::setUp();
 
+        $this->client = $this->getClient();
         $this->collection = $this->getCollection();
         $this->collection->drop();
     }
@@ -1341,5 +1344,93 @@ abstract class IntegrationTest extends TestCase
         $doc = $col->findOne(['_id' => 'alias-test']);
 
         self::assertEquals('alias', $doc['name']);
+    }
+
+    /**
+     * MongoDB only allows transactions on a replica set or sharded cluster, so
+     * the parity run against a standalone server skips these cases.
+     */
+    private function requireTransactionSupport(): void
+    {
+        $probe = $this->client->selectCollection('test', 'tx_probe');
+
+        try {
+            $session = $this->client->startSession();
+            $session->startTransaction();
+            $probe->insertOne(['_id' => 'probe'], ['session' => $session]);
+            $session->abortTransaction();
+            $session->endSession();
+        } catch (RuntimeException $e) {
+            self::markTestSkipped('backend does not support transactions: ' . $e->getMessage());
+        }
+    }
+
+    public function testTransactionCommitPersistsEveryWrite(): void
+    {
+        $this->requireTransactionSupport();
+
+        $items = $this->client->selectCollection('test', 'tx_commit');
+        $items->drop();
+
+        $session = $this->client->startSession();
+        $session->startTransaction();
+
+        $items->insertOne(['_id' => '1', 'name' => 'foo'], ['session' => $session]);
+        $items->insertOne(['_id' => '2', 'name' => 'bar'], ['session' => $session]);
+
+        $session->commitTransaction();
+        $session->endSession();
+
+        self::assertEquals(2, $items->countDocuments());
+    }
+
+    public function testTransactionAbortDiscardsEveryWrite(): void
+    {
+        $this->requireTransactionSupport();
+
+        $items = $this->client->selectCollection('test', 'tx_abort');
+        $items->drop();
+
+        $session = $this->client->startSession();
+        $session->startTransaction();
+
+        $items->insertOne(['_id' => '1', 'name' => 'foo'], ['session' => $session]);
+        $items->insertOne(['_id' => '2', 'name' => 'bar'], ['session' => $session]);
+
+        $session->abortTransaction();
+        $session->endSession();
+
+        self::assertEquals(0, $items->countDocuments());
+    }
+
+    public function testTransactionRollsBackWhenAnOperationFails(): void
+    {
+        $this->requireTransactionSupport();
+
+        $items = $this->client->selectCollection('test', 'tx_error');
+        $items->drop();
+        $items->insertOne(['_id' => 'existing', 'name' => 'old']);
+
+        $session = $this->client->startSession();
+        $session->startTransaction();
+
+        $failed = false;
+
+        try {
+            $items->insertOne(['_id' => 'fresh', 'name' => 'new'], ['session' => $session]);
+            $items->insertOne(['_id' => 'existing', 'name' => 'dupe'], ['session' => $session]);
+        } catch (RuntimeException) {
+            $failed = true;
+        }
+
+        if ($session->isInTransaction()) {
+            $session->abortTransaction();
+        }
+
+        $session->endSession();
+
+        self::assertTrue($failed, 'the duplicate insert should have raised an error');
+        self::assertEquals(1, $items->countDocuments());
+        self::assertEquals('old', $items->findOne(['_id' => 'existing'])['name']);
     }
 }

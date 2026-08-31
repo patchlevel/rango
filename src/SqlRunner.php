@@ -20,7 +20,7 @@ final class SqlRunner
         try {
             $rowCount = $pdo->exec($sql);
         } catch (PDOException $e) {
-            throw new QueryException($sql, $e->getMessage(), (int)$e->getCode(), $e);
+            throw QueryException::fromPdo($sql, $e);
         }
 
         if ($rowCount === false) {
@@ -35,7 +35,7 @@ final class SqlRunner
         try {
             $statement = $pdo->query($sql);
         } catch (PDOException $e) {
-            throw new QueryException($sql, $e->getMessage(), (int)$e->getCode(), $e);
+            throw QueryException::fromPdo($sql, $e);
         }
 
         if ($statement === false) {

@@ -15,7 +15,8 @@
       "title": "Advanced",
       "subEntries": [
         { "title": "Aggregation", "file": "aggregation.md" },
-        { "title": "Indexes", "file": "indexes.md" }
+        { "title": "Indexes", "file": "indexes.md" },
+        { "title": "Transactions", "file": "transactions.md" }
       ]
     },
     {

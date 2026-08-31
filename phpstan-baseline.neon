@@ -597,7 +597,7 @@ parameters:
 		-
 			message: '#^Cannot access offset ''name'' on array\|object\|null\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
-			count: 9
+			count: 10
 			path: tests/IntegrationTest.php
 
 		-

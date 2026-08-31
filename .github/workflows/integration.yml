@@ -71,14 +71,6 @@ jobs:
 
       runs-on: ${{ matrix.operating-system }}
 
-      services:
-        mongodb:
-          image: "mongo:${{ matrix.mongodb-version }}"
-          options: >-
-            --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })' --quiet"
-          ports:
-            - "27017:27017"
-
       strategy:
         matrix:
           dependencies:
@@ -93,11 +85,17 @@ jobs:
             - "8.0"
 
       env:
-        MONGODB_URI: 'mongodb://localhost:27017'
+        MONGODB_URI: 'mongodb://localhost:27017/?replicaSet=rs0'
 
       steps:
         - name: "Checkout"
           uses: actions/checkout@v6
+
+        - name: "Start MongoDB"
+          uses: supercharge/mongodb-github-action@1.12.0
+          with:
+            mongodb-version: "${{ matrix.mongodb-version }}"
+            mongodb-replica-set: rs0
 
         - name: "Install PHP"
           uses: "shivammathur/setup-php@2.36.0"

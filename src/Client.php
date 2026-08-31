@@ -30,6 +30,16 @@ final class Client
         $this->queryBuilder = new QueryBuilder($this->pdo);
     }
 
+    /**
+     * Start a session that can group operations into a single transaction.
+     *
+     * @param array<string, mixed> $options reserved for MongoDB compatibility, currently unused
+     */
+    public function startSession(array $options = []): Session
+    {
+        return new Session($this->pdo);
+    }
+
     public function getDatabase(string $name): Database
     {
         return new Database($this, $name);

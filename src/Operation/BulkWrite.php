@@ -40,7 +40,11 @@ final class BulkWrite extends CollectionOperation
         $insertedIds = [];
         $upsertedIds = [];
 
-        $pdo->beginTransaction();
+        $ownsTransaction = !$pdo->inTransaction();
+
+        if ($ownsTransaction) {
+            $pdo->beginTransaction();
+        }
 
         try {
             foreach ($this->operations as $operation) {
@@ -86,9 +90,13 @@ final class BulkWrite extends CollectionOperation
                 }
             }
 
-            $pdo->commit();
+            if ($ownsTransaction) {
+                $pdo->commit();
+            }
         } catch (Throwable $e) {
-            $pdo->rollBack();
+            if ($ownsTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
 
             throw $e;
         }
